@@ -35,7 +35,7 @@ class Environment:
         self.map[:,0] = 1
         self.map[:,-1] = 1
         
-        self.guard_location = None #bdg = bodyguard = the agent
+        self.guard_location = None 
         self.britney_location = None
         
         # our 'dictionary' where we assign a single number for each coordinate
@@ -65,20 +65,12 @@ class Environment:
     
     # KASPER: Maybe it's better to have a move method for each agent and character
     # and make a method "get_next_position" or so that all move methods share
-    def move(self, action): # perhaps rename this to "agent_move" and call the "get_next_position()" instead of having the next position code inside this method
+    def move_agent(self, action): # perhaps rename this to "agent_move" and call the "get_next_position()" instead of having the next position code inside this method
          # At every timestep, the agent receives a negative reward
         reward = -1
         bump = False
         
-        # action is 'up', 'down', 'left', or 'right'
-        if action == 'up':
-            next_position = np.array( (self.guard_location[0] - 1, self.guard_location[1] ) )
-        if action == 'down':
-            next_position = np.array( (self.guard_location[0] + 1, self.guard_location[1] ) )
-        if action == 'left':
-            next_position = np.array( (self.guard_location[0] , self.guard_location[1] - 1 ) )
-        if action == 'right':
-            next_position = np.array( (self.guard_location[0] , self.guard_location[1] + 1) )
+        next_position = self.get_next_position(action, self.guard_location)
         
         # If the agent bumps into a wall, it doesn't move, wall cells have value 1
         if self.map[next_position[0], next_position[1]] == 1:
@@ -124,27 +116,24 @@ class Environment:
         return observations, reward, done    
 
 
-    def are_locations_adjacent(self, britney_location, guard_location):
+    def are_locations_adjacent(self, britney_location):
         
         i = britney_location[0]
         j = britney_location[1]
         
         neighbors = {(i-1, j), (i, j+1), (i+1, j), (i, j-1)}
         
-        guard_location_tuple = (guard_location[0], guard_location[1])
+        guard_location_tuple = (self.guard_location[0], self.guard_location[1])
         
         if guard_location_tuple in neighbors:
             return True
         
         return False
-        
-    def move_towards_car():
-        """ Method that makes Britney move towards the car """
-        pass
     
-    def britney_move(self):
+    def move_britney(self):
         if self.are_locations_adjacent():
-            action = self.move_towards_car()
+            britney_gradient = (self.britney_location[0]-self.guard_location[0], self.britney_location[1]-self.guard_location[1])
+            self.britney_location += britney_gradient
         else:
             action = random.choice(self.actions)
         
@@ -152,23 +141,15 @@ class Environment:
 
             
     def get_next_position(self, action, current_location):
-
-        bump = False
-        
-        # action is 'up', 'down', 'left', or 'right'
         if action == 'up':
-            next_position = np.array( (current_location - 1, current_location[1] ) )
+            return np.array( (current_location - 1, current_location[1] ) )
         if action == 'down':
-            next_position = np.array( (current_location + 1, current_location[1] ) )
+            return np.array( (current_location + 1, current_location[1] ) )
         if action == 'left':
-            next_position = np.array( (current_location , current_location[1] - 1 ) )
+            return np.array( (current_location , current_location[1] - 1 ) )
         if action == 'right':
-            next_position = np.array( (current_location[0] , current_location[1] + 1) )
+            return np.array( (current_location[0] , current_location[1] + 1) )
         
-        
-        
-        return next_position
-
 
 
 
