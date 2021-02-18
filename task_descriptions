@@ -1,0 +1,41 @@
+# reinforcement_learning
+707 Deep Reinforcement Learning coursework @ City, University of London
+
+## Task 1
+You need to design and develop a tabular RL environment that follows an Markov Decision
+Process. In this task, the environment will provide a state that is used to train your RL
+algorithm
+In this first task, the number of different states that the agent can reach should be finite. The
+total number of states can be very large, but bear in mind that classical RL algorithms might
+not converge. So a good idea is to parameterize the number of states (e.g. in the labs, the
+number of different states where dependent on the size of the environment), to make sure that
+your problem is solvable. 
+
+## Task 2
+The second task is about implementing classical RL algorithms. You have the choice between
+implementing Q-learning or Dyna-Q.
+For this task, you should:
+- Describe and explain the algorithm you chose.
+- Conduct a case study of how this algorithm performs on the environment you
+implemented in Task 1.
+- Evaluate the performance of your algorithm.
+- You should evaluate the effect of the different hyper-parameters.
+- If your environment is parameterizable, a good addition would be to evaluate how your
+RL algorithms performs when the environment becomes more and more complex.
+
+## Task 3
+The third task requires to implement a Deep Reinforcement Learning algorithm. You cannot
+present DQN and its different improvements for this Task, as we will cover them in the labs.
+You can select any of the following algorithms to implement and evaluate:
+- Policy Optimization (e.g. Proximal Policy Optimization, Advantage Asynchronous
+Actor Critic, …)
+- Q-learning: Hindsight Experience Replay
+- World Models
+- Soft Actor Critic
+For reference, the algorithms are presented here: 
+https://spinningup.openai.com/en/latest/spinningup/rl_intro2.html#citations-below 
+
+## Task 4
+For this last optional task, you can work on a topic of your choosing. It must be related to the
+Module, and different from Tasks 1 to 3. Note that it can constitute a continuation of Task 1, 2
+or 3. 
