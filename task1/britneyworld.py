@@ -41,8 +41,8 @@ class Environment:
         # our 'dictionary' where we assign a single number for each coordinate
         self.locations = [[x,y] for x in range(N) for y in range(N)] 
         
+        self.car_location = self.get_empty_cells(1)
         
-        self.position_exit = self.get_empty_cells(1) ### Q2: do we have a moving exit? I think it is supposed to move but if we
         #are training it on an environment then it should stay the same through training?
         
         # run time ###Q3: do we want this?
@@ -51,9 +51,15 @@ class Environment:
         
         self.actions = ["up", "right", "down", "left"]
         
+        self.dict_map_display = { 0:'.', # Nothing
+                                  1:'X', # Obstacle
+                                  2:'B', # Britney
+                                  3:'C', # Car
+                                  4:'G'} # Guard
+                
         ### This is completely lifted from Michael's code
     def get_empty_cells(self, n_cells):
-        empty_cells_coord = np.where( self.dungeon == 0 )
+        empty_cells_coord = np.where( self.map == 0 )
         selected_indices = np.random.choice( np.arange(len(empty_cells_coord[0])), n_cells )
         selected_coordinates = empty_cells_coord[0][selected_indices], empty_cells_coord[1][selected_indices]
         
@@ -79,15 +85,11 @@ class Environment:
             self.guard_location = next_position
         
         # calculate reward
-        current_cell_type = self.map[self.bdg_loc[0], self.bdg_loc[1]]
-        if current_cell_type == 2:
-            reward -= 20
+        #britney_cell_type = self.map[self.britney_location[0], self.britney_location[1]]
         
-        if current_cell_type == 3:
-            reward += self.size**2
+        #if britney_cell_type == 3:
+         #   reward += self.size**2
             
-        if bump:
-            reward -= 5
         
         # calculate observations
         #returns surrounding cells and relative coordinates to exit
@@ -102,7 +104,7 @@ class Environment:
         if self.time_elapsed == self.time_limit:
             done = True
         
-        if (self.guard_location == self.position_exit).all():
+        if (self.guard_location == self.car_location).all():
             done = True
             
         ###########
@@ -115,13 +117,17 @@ class Environment:
             
         return observations, reward, done    
 
-
-    def are_locations_adjacent(self, britney_location):
-        
-        i = britney_location[0]
-        j = britney_location[1]
+    def get_neighbors(self, location):
+        i = location[0]
+        j = location[1]
         
         neighbors = {(i-1, j), (i, j+1), (i+1, j), (i, j-1)}
+        
+        return neighbors
+        
+    def are_locations_adjacent(self):
+        
+        neighbors = self.get_neighbors(self.britney_location)
         
         guard_location_tuple = (self.guard_location[0], self.guard_location[1])
         
@@ -151,21 +157,83 @@ class Environment:
             return np.array( (current_location[0] , current_location[1] + 1) )
         
 
+    def display(self):
+        # Lifted from Michael's code
+        
+        envir_with_agent = self.map.copy()
+        envir_with_agent[self.guard_location[0], self.guard_location[1]] = 4
+        envir_with_agent[self.britney_location[0], self.britney_location[1]] = 2
+        envir_with_agent[self.car_location[0], self.car_location[1]] = 3
+        
+        full_repr = ""
+
+        for r in range(self.size):
+            
+            line = ""
+            
+            for c in range(self.size):
+
+                string_repr = self.dict_map_display[ envir_with_agent[r,c] ]
+                
+                line += "{0:2}".format(string_repr)
+
+            full_repr += line + "\n"
+
+        print(full_repr)
+
+
+    def reset(self):
+        # Adapted from Michael's code
+        """
+        This function resets the environment to its original state (time = 0).
+        Then it places the agent and exit at new random locations.
+        
+        It is common practice to return the observations, 
+        so that the agent can decide on the first action right after the resetting of the environment.
+        
+        """
+        self.time_elapsed = 0
+        
+        # position of the agent is a numpy array
+        self.britney_location = np.asarray(self.get_empty_cells(1))
+        
+        britney_neighbors = list(self.get_neighbors(self.britney_location))
+        
+        self.guard_location = np.asarray(random.choice(britney_neighbors))
+        
+        # Calculate observations
+        observations = self.calculate_observations()
+        
+        return observations
 
 
 
+    def calculate_observations(self):
+        
+        relative_coordinates = self.car_location - self.guard_location
+                
+        surroundings = self.map[ self.guard_location[0] -1: self.guard_location[0] +2,
+                                     self.guard_location[1] -1: self.guard_location[1] +2]
+        
+        obs = {'relative_coordinates':relative_coordinates,
+               'surroundings': surroundings}
+        
+        return obs
 
 
+    def run(self, action): # later on, the action should be the result of some policy
+    
+        reward = -1
+        
+        self.move_agent(action)
+        self.move_britney()
+        
+        britney_cell_type = self.map[self.britney_location[0], self.britney_location[1]]
+        
+        if britney_cell_type == 3:
+            reward += self.size**2
 
-
-
-
-
-
-
-
-
-
+    
 
 
 
