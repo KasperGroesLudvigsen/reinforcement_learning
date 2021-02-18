@@ -49,6 +49,8 @@ class Environment:
         self.time_elapsed = 0
         self.time_limit = self.size**2
         
+        self.actions = ["up", "right", "down", "left"]
+        
         ### This is completely lifted from Michael's code
     def get_empty_cells(self, n_cells):
         empty_cells_coord = np.where( self.dungeon == 0 )
@@ -60,8 +62,10 @@ class Environment:
         
         return selected_coordinates    
 
-        
-    def move(self, action):
+    
+    # KASPER: Maybe it's better to have a move method for each agent and character
+    # and make a method "get_next_position" or so that all move methods share
+    def move(self, action): # perhaps rename this to "agent_move" and call the "get_next_position()" instead of having the next position code inside this method
          # At every timestep, the agent receives a negative reward
         reward = -1
         bump = False
@@ -70,7 +74,7 @@ class Environment:
         if action == 'up':
             next_position = np.array( (self.guard_location[0] - 1, self.guard_location[1] ) )
         if action == 'down':
-            next_position = np.array( (self.guard_location[0] + 1, self.guard_locationguard_location[1] ) )
+            next_position = np.array( (self.guard_location[0] + 1, self.guard_location[1] ) )
         if action == 'left':
             next_position = np.array( (self.guard_location[0] , self.guard_location[1] - 1 ) )
         if action == 'right':
@@ -111,23 +115,59 @@ class Environment:
             
         ###########
         
-        # if BDG_loc is 1 square adjacent britney_loc then britney's move is deterministic, she gets 'pushed in direction
+        # if BDG_loc is 1 square adjacent britney_location then britney's move is deterministic, she gets 'pushed in direction
         # if not, Britney's move is random
         
         
         
             
-        return observations, reward, done
+        return observations, reward, done    
 
 
+    def are_locations_adjacent(self, britney_location, guard_location):
+        
+        i = britney_location[0]
+        j = britney_location[1]
+        
+        neighbors = {(i-1, j), (i, j+1), (i+1, j), (i, j-1)}
+        
+        guard_location_tuple = (guard_location[0], guard_location[1])
+        
+        if guard_location_tuple in neighbors:
+            return True
+        
+        return False
+        
+    def move_towards_car():
+        """ Method that makes Britney move towards the car """
+        pass
+    
+    def britney_move(self):
+        if self.are_locations_adjacent():
+            action = self.move_towards_car()
+        else:
+            action = random.choice(self.actions)
+        
+        self.britney_location = self.get_next_position(action, self.britney_location)
 
+            
+    def get_next_position(self, action, current_location):
 
-
-
-
-
-
-
+        bump = False
+        
+        # action is 'up', 'down', 'left', or 'right'
+        if action == 'up':
+            next_position = np.array( (current_location - 1, current_location[1] ) )
+        if action == 'down':
+            next_position = np.array( (current_location + 1, current_location[1] ) )
+        if action == 'left':
+            next_position = np.array( (current_location , current_location[1] - 1 ) )
+        if action == 'right':
+            next_position = np.array( (current_location[0] , current_location[1] + 1) )
+        
+        
+        
+        return next_position
 
 
 
