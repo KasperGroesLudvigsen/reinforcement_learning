@@ -74,14 +74,12 @@ class Environment:
     def move_agent(self, action): # perhaps rename this to "agent_move" and call the "get_next_position()" instead of having the next position code inside this method
          # At every timestep, the agent receives a negative reward
         reward = -1
-        bump = False
+        #bump = False
         
         next_position = self.get_next_position(action, self.guard_location)
         
-        # If the agent bumps into a wall, it doesn't move, wall cells have value 1
-        if self.map[next_position[0], next_position[1]] == 1:
-            bump = True
-        else:
+        # agent only moves into next position if it is open space
+        if self.map[next_position[0], next_position[1]] == 0:
             self.guard_location = next_position
         
         # calculate reward
@@ -107,15 +105,9 @@ class Environment:
         if (self.guard_location == self.car_location).all():
             done = True
             
-        ###########
-        
-        # if BDG_loc is 1 square adjacent britney_location then britney's move is deterministic, she gets 'pushed in direction
-        # if not, Britney's move is random
-        
-        
-        
-            
+
         return observations, reward, done    
+
 
     def get_neighbors(self, location):
         i = location[0]
@@ -139,20 +131,23 @@ class Environment:
     def move_britney(self):
         if self.are_locations_adjacent():
             britney_gradient = (self.britney_location[0]-self.guard_location[0], self.britney_location[1]-self.guard_location[1])
-            self.britney_location += britney_gradient
+            new_britney_location = self.britney_location + britney_gradient
+
         else:
             action = random.choice(self.actions)
+            new_britney_location = self.get_next_position(action, self.britney_location)
         
-        self.britney_location = self.get_next_position(action, self.britney_location)
+        if self.map[new_britney_location[0]][new_britney_location[1]] == 0:
+            self.britney_location = new_britney_location
 
             
     def get_next_position(self, action, current_location):
         if action == 'up':
-            return np.array( (current_location - 1, current_location[1] ) )
+            return np.array( (current_location[0] - 1, current_location[1] ) )
         if action == 'down':
-            return np.array( (current_location + 1, current_location[1] ) )
+            return np.array( (current_location[0] + 1, current_location[1] ) )
         if action == 'left':
-            return np.array( (current_location , current_location[1] - 1 ) )
+            return np.array( (current_location[0] , current_location[1] - 1 ) )
         if action == 'right':
             return np.array( (current_location[0] , current_location[1] + 1) )
         
@@ -197,7 +192,10 @@ class Environment:
         # position of the agent is a numpy array
         self.britney_location = np.asarray(self.get_empty_cells(1))
         
+        #So that the guard doesn't end up on an obstacle
         britney_neighbors = list(self.get_neighbors(self.britney_location))
+        britney_neighbors = [x for x in britney_neighbors if self.map[x[0]][x[1]] == 0]
+              
         
         self.guard_location = np.asarray(random.choice(britney_neighbors))
         

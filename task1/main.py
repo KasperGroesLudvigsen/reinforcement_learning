@@ -1,15 +1,16 @@
 
 
-import britneyworld
+import reinforcement_learning.task1.britneyworld as bw
+import numpy as np
+env = bw.Environment(10)
 
-env = britneyworld.Environment(10)
 
 env.reset()
 env.display()
 
-env.britney_location[0]
 
-env.move_agent('right')
+
+env.move_agent('down')
 env.move_britney()
 
 #britney_cell_type = environment.map[environment.britney_location[0], environment.britney_location[1]]
