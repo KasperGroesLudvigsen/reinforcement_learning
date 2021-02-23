@@ -37,28 +37,27 @@ class Environment:
         
         self.guard_location = None 
         self.britney_location = None
-        
+        self.car_location = None
+        self.reward = None
         # our 'dictionary' where we assign a single number for each coordinate
         self.locations = [[x,y] for x in range(N) for y in range(N)] 
         
-        self.car_location = self.get_empty_cells(1)
         
         #are training it on an environment then it should stay the same through training?
         
         # run time ###Q3: do we want this?
         self.time_elapsed = 0
         self.time_limit = self.size**2
-        
         self.actions = ["up", "right", "down", "left"]
-        
         self.dict_map_display = { 0:'.', # Nothing
                                   1:'X', # Obstacle
                                   2:'B', # Britney
                                   3:'C', # Car
                                   4:'G'} # Guard
                 
-        ### This is completely lifted from Michael's code
+        
     def get_empty_cells(self, n_cells):
+        ### This is completely lifted from Michael's code
         empty_cells_coord = np.where( self.map == 0 )
         selected_indices = np.random.choice( np.arange(len(empty_cells_coord[0])), n_cells )
         selected_coordinates = empty_cells_coord[0][selected_indices], empty_cells_coord[1][selected_indices]
@@ -69,9 +68,8 @@ class Environment:
         return selected_coordinates    
 
     
-    # KASPER: Maybe it's better to have a move method for each agent and character
-    # and make a method "get_next_position" or so that all move methods share
-    def move_agent(self, action): # perhaps rename this to "agent_move" and call the "get_next_position()" instead of having the next position code inside this method
+
+    def move_agent(self, action):
          # At every timestep, the agent receives a negative reward
         reward = -1
         #bump = False
@@ -82,15 +80,8 @@ class Environment:
         if self.map[next_position[0], next_position[1]] == 0:
             self.guard_location = next_position
         
-        # calculate reward
-        #britney_cell_type = self.map[self.britney_location[0], self.britney_location[1]]
-        
-        #if britney_cell_type == 3:
-         #   reward += self.size**2
-            
-        
         # calculate observations
-        #returns surrounding cells and relative coordinates to exit
+        # returns surrounding cells and relative coordinates to exit
         observations = self.calculate_observations()
         
         # update time
@@ -100,12 +91,16 @@ class Environment:
         done = False
         
         if self.time_elapsed == self.time_limit:
+            print("Time limit reached")
             done = True
         
-        if (self.guard_location == self.car_location).all():
+        # changed from agent_location to britney_location as the objective 
+        # is to get britney to the car
+        if (self.britney_location == self.car_location).all():
+            reward += self.size**2
+            print("Britney got to her car safely")
             done = True
             
-
         return observations, reward, done    
 
 
@@ -137,7 +132,7 @@ class Environment:
             action = random.choice(self.actions)
             new_britney_location = self.get_next_position(action, self.britney_location)
         
-        if self.map[new_britney_location[0]][new_britney_location[1]] == 0:
+        if self.map[new_britney_location[0]][new_britney_location[1]] != 1:
             self.britney_location = new_britney_location
 
             
@@ -184,20 +179,24 @@ class Environment:
         Then it places the agent and exit at new random locations.
         
         It is common practice to return the observations, 
-        so that the agent can decide on the first action right after the resetting of the environment.
+        so that the agent can decide on the first action right after the 
+        resetting of the environment.
         
         """
         self.time_elapsed = 0
         
-        # position of the agent is a numpy array
-        self.britney_location = np.asarray(self.get_empty_cells(1))
+        # Setting Britney's location
+        self.britney_location = self.get_empty_cells(1)
+
         
-        #So that the guard doesn't end up on an obstacle
+        # The guard is spawned onto a location next to Britney, but cannot spawn
+        # onto an obstacle
         britney_neighbors = list(self.get_neighbors(self.britney_location))
         britney_neighbors = [x for x in britney_neighbors if self.map[x[0]][x[1]] == 0]
-              
-        
         self.guard_location = np.asarray(random.choice(britney_neighbors))
+
+        # Setting car location 
+        self.car_location = self.get_empty_cells(1)
         
         # Calculate observations
         observations = self.calculate_observations()
@@ -218,20 +217,20 @@ class Environment:
         
         return obs
 
-
-    def run(self, action): # later on, the action should be the result of some policy
-    
-        reward = -1
+    # We should consider whether we actually need this method. Not much happens in
+    # that could couldnt be handled outside the class methods
+    def run(self, action): 
         
-        self.move_agent(action)
+        done = False
+
+        observations, reward, done = self.move_agent(action)
         self.move_britney()
         
-        britney_cell_type = self.map[self.britney_location[0], self.britney_location[1]]
+        #if (self.britney_location == self.car_location).all():
+        #    reward += self.size**2
+        #    done = True
         
-        if britney_cell_type == 3:
-            reward += self.size**2
-
-    
+        return reward, done
 
 
 
