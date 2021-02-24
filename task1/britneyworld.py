@@ -44,7 +44,7 @@ class Environment:
         # run time ###Q3: do we want this?
         self.time_elapsed = 0
         self.time_limit = self.size**2
-        self.actions = ["up", "right", "down", "left"]
+        self.britney_actions = ["up", "right", "down", "left"]
         self.dict_map_display = { 0:'.', # Nothing
                                   1:'X', # Obstacle
                                   2:'B', # Britney
@@ -63,9 +63,13 @@ class Environment:
         
         return selected_coordinates    
 
-    
-
-    def move_agent(self, action):
+    def push_britney(self):
+        if self.are_locations_adjacent():
+            britney_gradient = (self.britney_location[0]-self.guard_location[0], self.britney_location[1]-self.guard_location[1])
+            self.britney_location = self.britney_location + britney_gradient
+            
+            
+    def take_action_guard(self, action):
          # At every timestep, the agent receives a negative reward
         reward = -1
         #bump = False
@@ -76,6 +80,9 @@ class Environment:
         if self.map[next_position[0], next_position[1]] == 0:
             self.guard_location = next_position
         
+        if action == "push":
+            self.push_britney()
+            
         # calculate observations
         # returns surrounding cells and relative coordinates to exit
         observations = self.calculate_observations()
@@ -109,6 +116,7 @@ class Environment:
         return neighbors
         
     def are_locations_adjacent(self):
+        # Refactor to take 2 locations as input and check for adjacency
         
         neighbors = self.get_neighbors(self.britney_location)
         
@@ -119,15 +127,13 @@ class Environment:
         
         return False
     
-    def move_britney(self):
-        if self.are_locations_adjacent():
-            britney_gradient = (self.britney_location[0]-self.guard_location[0], self.britney_location[1]-self.guard_location[1])
-            new_britney_location = self.britney_location + britney_gradient
-
-        else:
-            action = random.choice(self.actions)
+    def britney_stubmles(self, stumble_probability):
+        """ For every t, there is a probability that Britney stumbles to a new location """
+        if stumble_probability >= random.random():
+            action = random.choice(self.britney_actions)
             new_britney_location = self.get_next_position(action, self.britney_location)
         
+        # Britney only moves if the cell she moves to is not an obstacle
         if self.map[new_britney_location[0]][new_britney_location[1]] != 1:
             self.britney_location = new_britney_location
 
