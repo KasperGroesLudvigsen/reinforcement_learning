@@ -64,7 +64,6 @@ class Environment:
         return selected_coordinates    
 
     def push_britney(self):
-        if self.are_locations_adjacent():
             britney_gradient = (self.britney_location[0]-self.guard_location[0], self.britney_location[1]-self.guard_location[1])
             self.britney_location = self.britney_location + britney_gradient
             
@@ -115,14 +114,11 @@ class Environment:
         
         return neighbors
         
-    def are_locations_adjacent(self):
-        # Refactor to take 2 locations as input and check for adjacency
+    def are_locations_adjacent(self, location1, location2):
+        neighbors = self.get_neighbors(location1)
+        location2_tuple = (location2[0], location2[1])
         
-        neighbors = self.get_neighbors(self.britney_location)
-        
-        guard_location_tuple = (self.guard_location[0], self.guard_location[1])
-        
-        if guard_location_tuple in neighbors:
+        if location2_tuple in neighbors:
             return True
         
         return False
