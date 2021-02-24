@@ -5,18 +5,11 @@ Created on Thu Feb 18 11:13:16 2021
 @author: hugha
 """
 ################ Rules governing movment and action of charachters ###########
-'''
-Guard / agent: 
-    1.move to any location within a 5x5 grid of themself
-    2.agent can push britney
 
 
-Britney:
-    1.moves randomly if not pushed by agent
-    2.moves where she is pushed by agent if she is pushed.
-    
-NB: we should make the push variable easily upgradable to being stochastic
-'''
+"""
+See movement mechanism specifications in report
+"""
 
 import numpy as np
 import random
@@ -137,16 +130,24 @@ class Environment:
 
             
     def get_next_position(self, action, current_location):
-        if action == 'up':
-            return np.array( (current_location[0] - 1, current_location[1] ) )
-        if action == 'down':
-            return np.array( (current_location[0] + 1, current_location[1] ) )
-        if action == 'left':
-            return np.array( (current_location[0] , current_location[1] - 1 ) )
-        if action == 'right':
-            return np.array( (current_location[0] , current_location[1] + 1) )
+        if action == 'N': # North, i.e. up
+            return np.array((current_location[0] - 1, current_location[1]))
+        if action == 'S': # South, i.e. down
+            return np.array((current_location[0] + 1, current_location[1] ))
+        if action == 'W': # West, i.e. left
+            return np.array((current_location[0] , current_location[1] - 1 ))
+        if action == 'E': # East, i.e. right
+            return np.array((current_location[0] , current_location[1] + 1))
+        if action == 'NE': # North east
+            return np.array((current_location[0] - 1, current_location[1] + 1))
+        if action == "SE": # South east
+            return np.array((current_location[0] + 1, current_location[1] + 1))
+        if action == "SW": # South west
+            return np.array((current_location[0] + 1, current_location[1] - 1))
+        if action == "NW": # North west
+            return np.array((current_location[0] - 1, current_location[1] -1))
         
-
+        
     def display(self):
         # Lifted from Michael's code
         
@@ -231,6 +232,8 @@ class Environment:
         #    done = True
         
         return reward, done
+    
+    
 
 
 
