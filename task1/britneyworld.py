@@ -19,6 +19,9 @@ class Environment:
     
     def __init__(self, N):
         
+        if N < 4:
+            raise Exception('N must be larger than 3')
+        
         self.map = np.zeros((N,N))
         self.size = N
         
