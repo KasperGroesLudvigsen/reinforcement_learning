@@ -4,19 +4,10 @@ Created on Thu Feb 18 11:13:16 2021
 
 @author: hugha
 """
-################ Rules governing movment and action of charachters ###########
-'''
-Guard / agent: 
-    1.move to any location within a 5x5 grid of themself
-    2.agent can push britney
 
-
-Britney:
-    1.moves randomly if not pushed by agent
-    2.moves where she is pushed by agent if she is pushed.
-    
-NB: we should make the push variable easily upgradable to being stochastic
-'''
+"""
+See movement mechanism specifications in report
+"""
 
 import numpy as np
 import random
@@ -25,6 +16,9 @@ import random
 class Environment:
     
     def __init__(self, N):
+        
+        if N < 4:
+            raise Exception('N must be larger than 3')
         
         self.map = np.zeros((N,N))
         self.size = N
@@ -48,13 +42,21 @@ class Environment:
         # run time ###Q3: do we want this?
         self.time_elapsed = 0
         self.time_limit = self.size**2
-        self.actions = ["up", "right", "down", "left"]
+        self.britney_actions = ["N", "S", "E", "W"]
         self.dict_map_display = { 0:'.', # Nothing
                                   1:'X', # Obstacle
                                   2:'B', # Britney
                                   3:'C', # Car
                                   4:'G'} # Guard
                 
+    def push_britney(self):
+        britney_gradient = (self.britney_location[0]-self.guard_location[0], self.britney_location[1]-self.guard_location[1]) 
+        britney_new_location = self.britney_location + britney_gradient
+        try:
+            if self.map[britney_new_location[0], britney_new_location[1]] == 0:
+                self.britney_location = britney_new_location
+        except:
+            pass
         
     def get_empty_cells(self, n_cells):
         ### This is completely lifted from Michael's code
@@ -66,20 +68,25 @@ class Environment:
             return np.asarray(selected_coordinates).reshape(2,)
         
         return selected_coordinates    
-
-    
-
-    def move_agent(self, action):
+            
+        
+    def take_action_guard(self, action):
          # At every timestep, the agent receives a negative reward
         reward = -1
         #bump = False
         
         next_position = self.get_next_position(action, self.guard_location)
         
-        # agent only moves into next position if it is open space
-        if self.map[next_position[0], next_position[1]] == 0:
-            self.guard_location = next_position
         
+        
+        if action == "push":
+            self.push_britney()
+            
+        else:
+            # agent only moves into next position if it is open space
+            if self.map[next_position[0], next_position[1]] == 0:
+                self.guard_location = next_position
+            
         # calculate observations
         # returns surrounding cells and relative coordinates to exit
         observations = self.calculate_observations()
@@ -108,45 +115,49 @@ class Environment:
         i = location[0]
         j = location[1]
         
-        neighbors = {(i-1, j), (i, j+1), (i+1, j), (i, j-1)}
+        neighbors = {(i-1, j), (i, j+1), (i+1, j), (i, j-1), (i-1, j+1), 
+                     (i+1, j+1), (i+1, j-1), (i-1, j-1)}
         
         return neighbors
         
-    def are_locations_adjacent(self):
+    def are_locations_adjacent(self, location1, location2):
+        neighbors = self.get_neighbors(location1)
+        location2_tuple = (location2[0], location2[1])
         
-        neighbors = self.get_neighbors(self.britney_location)
-        
-        guard_location_tuple = (self.guard_location[0], self.guard_location[1])
-        
-        if guard_location_tuple in neighbors:
+        if location2_tuple in neighbors:
             return True
         
         return False
     
-    def move_britney(self):
-        if self.are_locations_adjacent():
-            britney_gradient = (self.britney_location[0]-self.guard_location[0], self.britney_location[1]-self.guard_location[1])
-            new_britney_location = self.britney_location + britney_gradient
-
-        else:
-            action = random.choice(self.actions)
+    def britney_stubmles(self, stumble_probability):
+        """ For every t, there is a probability that Britney stumbles to a new location """
+        if stumble_probability >= random.random():
+            action = random.choice(self.britney_actions)
             new_britney_location = self.get_next_position(action, self.britney_location)
         
-        if self.map[new_britney_location[0]][new_britney_location[1]] != 1:
-            self.britney_location = new_britney_location
-
+            # Britney only moves if the cell she moves to is not an obstacle
+            if self.map[new_britney_location[0]][new_britney_location[1]] != 1:
+                self.britney_location = new_britney_location
             
     def get_next_position(self, action, current_location):
-        if action == 'up':
-            return np.array( (current_location[0] - 1, current_location[1] ) )
-        if action == 'down':
-            return np.array( (current_location[0] + 1, current_location[1] ) )
-        if action == 'left':
-            return np.array( (current_location[0] , current_location[1] - 1 ) )
-        if action == 'right':
-            return np.array( (current_location[0] , current_location[1] + 1) )
+        if action == 'N': # North, i.e. up
+            return np.array((current_location[0] - 1, current_location[1]))
+        if action == 'S': # South, i.e. down
+            return np.array((current_location[0] + 1, current_location[1] ))
+        if action == 'W': # West, i.e. left
+            return np.array((current_location[0] , current_location[1] - 1 ))
+        if action == 'E': # East, i.e. right
+            return np.array((current_location[0] , current_location[1] + 1))
+        if action == 'NE': # North east
+            return np.array((current_location[0] - 1, current_location[1] + 1))
+        if action == "SE": # South east
+            return np.array((current_location[0] + 1, current_location[1] + 1))
+        if action == "SW": # South west
+            return np.array((current_location[0] + 1, current_location[1] - 1))
+        if action == "NW": # North west
+            return np.array((current_location[0] - 1, current_location[1] -1))
         
-
+        
     def display(self):
         # Lifted from Michael's code
         
@@ -231,8 +242,8 @@ class Environment:
         #    done = True
         
         return reward, done
+    
+    
 
 
-
-        
        

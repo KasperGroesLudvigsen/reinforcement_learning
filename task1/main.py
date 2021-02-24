@@ -3,17 +3,17 @@ import random
 import numpy as np
 
 def random_policy():
-    return random.choice(["up", "left", "down", "right"])
+    return random.choice(["N", "E", "S", "W", "NE", "SE", "SW", "NW" ,"push"])
 
-def run_episode(env, policy, print_iter=False):
+def run_episode(env, policy, stumble_probability, print_iter=False):
     total_reward = 0
     done = False
     iterations = 0
     while not done:
         iterations += 1
-        observations, reward, done = env.move_agent(policy)
+        observations, reward, done = env.take_action_guard(policy)
         total_reward += reward
-        env.move_britney()
+        env.britney_stubmles(stumble_probability)
         # done = env.run(random_policy())
         if iterations % 10 == 0:
             env.display()
@@ -29,7 +29,7 @@ episodes = 10
 total_iterations = 0
 total_reward = 0
 for episode in range(episodes):
-    iterations, reward = run_episode(env, random_policy())
+    iterations, reward = run_episode(env, random_policy(), stumble_probability=0.1)
     total_iterations += iterations
     total_reward += reward
     env.reset()
