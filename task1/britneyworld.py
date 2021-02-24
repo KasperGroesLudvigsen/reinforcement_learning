@@ -4,8 +4,6 @@ Created on Thu Feb 18 11:13:16 2021
 
 @author: hugha
 """
-################ Rules governing movment and action of charachters ###########
-
 
 """
 See movement mechanism specifications in report
@@ -44,13 +42,21 @@ class Environment:
         # run time ###Q3: do we want this?
         self.time_elapsed = 0
         self.time_limit = self.size**2
-        self.britney_actions = ["up", "right", "down", "left"]
+        self.britney_actions = ["N", "S", "E", "W"]
         self.dict_map_display = { 0:'.', # Nothing
                                   1:'X', # Obstacle
                                   2:'B', # Britney
                                   3:'C', # Car
                                   4:'G'} # Guard
                 
+    def push_britney(self):
+        britney_gradient = (self.britney_location[0]-self.guard_location[0], self.britney_location[1]-self.guard_location[1]) 
+        britney_new_location = self.britney_location + britney_gradient
+        try:
+            if self.map[britney_new_location[0], britney_new_location[1]] == 0:
+                self.britney_location = britney_new_location
+        except:
+            pass
         
     def get_empty_cells(self, n_cells):
         ### This is completely lifted from Michael's code
@@ -62,12 +68,8 @@ class Environment:
             return np.asarray(selected_coordinates).reshape(2,)
         
         return selected_coordinates    
-
-    def push_britney(self):
-            britney_gradient = (self.britney_location[0]-self.guard_location[0], self.britney_location[1]-self.guard_location[1])
-            self.britney_location = self.britney_location + britney_gradient
             
-            
+        
     def take_action_guard(self, action):
          # At every timestep, the agent receives a negative reward
         reward = -1
@@ -75,12 +77,15 @@ class Environment:
         
         next_position = self.get_next_position(action, self.guard_location)
         
-        # agent only moves into next position if it is open space
-        if self.map[next_position[0], next_position[1]] == 0:
-            self.guard_location = next_position
+        
         
         if action == "push":
             self.push_britney()
+            
+        else:
+            # agent only moves into next position if it is open space
+            if self.map[next_position[0], next_position[1]] == 0:
+                self.guard_location = next_position
             
         # calculate observations
         # returns surrounding cells and relative coordinates to exit
@@ -110,7 +115,8 @@ class Environment:
         i = location[0]
         j = location[1]
         
-        neighbors = {(i-1, j), (i, j+1), (i+1, j), (i, j-1)}
+        neighbors = {(i-1, j), (i, j+1), (i+1, j), (i, j-1), (i-1, j+1), 
+                     (i+1, j+1), (i+1, j-1), (i-1, j-1)}
         
         return neighbors
         
@@ -129,10 +135,9 @@ class Environment:
             action = random.choice(self.britney_actions)
             new_britney_location = self.get_next_position(action, self.britney_location)
         
-        # Britney only moves if the cell she moves to is not an obstacle
-        if self.map[new_britney_location[0]][new_britney_location[1]] != 1:
-            self.britney_location = new_britney_location
-
+            # Britney only moves if the cell she moves to is not an obstacle
+            if self.map[new_britney_location[0]][new_britney_location[1]] != 1:
+                self.britney_location = new_britney_location
             
     def get_next_position(self, action, current_location):
         if action == 'N': # North, i.e. up
@@ -241,6 +246,4 @@ class Environment:
     
 
 
-
-        
        
