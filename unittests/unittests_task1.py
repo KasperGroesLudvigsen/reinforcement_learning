@@ -34,10 +34,9 @@ def unittest_get_next_position():
 unittest_get_next_position()  
 
 
-
-
-
-    
 def unittest_any_grid_size():
-    pass
+    env = bw.Environment(3)
+    env.reset()
     # test that the grid can be initialized with any size
+    
+unittest_any_grid_size()
