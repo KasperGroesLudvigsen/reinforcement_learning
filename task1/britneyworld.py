@@ -41,6 +41,7 @@ class Environment:
         
         # run time ###Q3: do we want this?
         self.time_elapsed = 0
+        self.guard_actions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
         self.time_limit = self.size**2
         self.britney_actions = ["N", "S", "E", "W"]
         self.dict_map_display = { 0:'.', # Nothing
