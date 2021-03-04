@@ -37,7 +37,7 @@ class Environment:
         self.car_location = None
         self.reward = None
         # our 'dictionary' where we assign a single number for each coordinate
-        self.locations = [[x,y] for x in range(N) for y in range(N)] 
+        #self.locations = [[x,y] for x in range(N) for y in range(N)] 
         index_states = np.arange(0, (N*N)**2)
         np.random.shuffle(index_states)
         self.states = index_states.reshape(N,N,N,N)
