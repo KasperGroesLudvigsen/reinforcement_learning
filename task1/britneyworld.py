@@ -29,14 +29,18 @@ class Environment:
         self.map[:,0] = 1
         self.map[:,-1] = 1
         
+        self.britney_start_location = None
+        self.guard_start_location = None
+        
         self.guard_location = None 
         self.britney_location = None
         self.car_location = None
         self.reward = None
         # our 'dictionary' where we assign a single number for each coordinate
-        self.locations = [[x,y] for x in range(N) for y in range(N)] 
-        
-        
+        #self.locations = [[x,y] for x in range(N) for y in range(N)] 
+        index_states = np.arange(0, (N*N)**2)
+        np.random.shuffle(index_states)
+        self.states = index_states.reshape(N,N,N,N)
         #are training it on an environment then it should stay the same through training?
         
         # run time ###Q3: do we want this?
@@ -54,7 +58,7 @@ class Environment:
         britney_gradient = (self.britney_location[0]-self.guard_location[0], self.britney_location[1]-self.guard_location[1]) 
         britney_new_location = self.britney_location + britney_gradient
         try:
-            if self.map[britney_new_location[0], britney_new_location[1]] == 0:
+            if self.is_empty(britney_new_location): # she can fall onto agent
                 self.britney_location = britney_new_location
         except:
             pass
@@ -85,12 +89,14 @@ class Environment:
             
         else:
             # agent only moves into next position if it is open space
-            if self.map[next_position[0], next_position[1]] == 0:
+            if self.is_empty(next_position): # make a function is space empty that checks if it is zero and if it has noone on it
                 self.guard_location = next_position
-            
+        
+        self.britney_stumbles(0.5)
+        
         # calculate observations
         # returns surrounding cells and relative coordinates to exit
-        observations = self.calculate_observations()
+        #observations = self.calculate_observations()
         
         # update time
         self.time_elapsed += 1
@@ -108,10 +114,18 @@ class Environment:
             reward += self.size**2
             print("Britney got to her car safely")
             done = True
-            
-        return observations, reward, done    
+        
+        state = self.states[self.guard_location[0]][self.guard_location[1]][self.britney_location[0]][self.britney_location[1]]
+        return state, reward, done    
 
-
+    def is_empty(self, position):
+        a = self.map[position[0]][position[1]]==0
+        b = position[0] == self.guard_location[0] and position[1] == self.guard_location[1] 
+        c = position[0] == self.britney_location[0] and position[1] == self.britney_location[1] 
+        return a and not b and not c
+        
+        
+        
     def get_neighbors(self, location):
         i = location[0]
         j = location[1]
@@ -130,7 +144,7 @@ class Environment:
         
         return False
     
-    def britney_stubmles(self, stumble_probability):
+    def britney_stumbles(self, stumble_probability):
         """ For every t, there is a probability that Britney stumbles to a new location """
         if stumble_probability >= random.random():
             action = random.choice(self.britney_actions)
@@ -198,15 +212,15 @@ class Environment:
         self.time_elapsed = 0
         
         # Setting Britney's location
-        self.britney_location = self.get_empty_cells(1)
-
+        self.britney_start_location = self.get_empty_cells(1)
+        self.britney_location = self.britney_start_location
         
         # The guard is spawned onto a location next to Britney, but cannot spawn
         # onto an obstacle
         britney_neighbors = list(self.get_neighbors(self.britney_location))
         britney_neighbors = [x for x in britney_neighbors if self.map[x[0]][x[1]] == 0]
-        self.guard_location = np.asarray(random.choice(britney_neighbors))
-
+        self.guard_start_location = np.asarray(random.choice(britney_neighbors))
+        self.guard_location = self.guard_start_location
         # Setting car location 
         self.car_location = self.get_empty_cells(1)
         
@@ -214,8 +228,12 @@ class Environment:
         observations = self.calculate_observations()
         
         return observations
-
-
+    
+    def respawn(self):
+        self.time_elapsed = 0
+        self.britney_location = self.britney_start_location
+        self.guard_location = self.guard_start_location
+        
 
     def calculate_observations(self):
         
@@ -244,6 +262,9 @@ class Environment:
         
         return reward, done
     
+    def get_state(self):
+        state = self.states[self.guard_location[0]][self.guard_location[1]][self.britney_location[0]][self.britney_location[1]]
+        return state
     
 
 
