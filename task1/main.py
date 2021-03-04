@@ -2,9 +2,11 @@ import reinforcement_learning.task1.britneyworld as bw # H: this 1 works for me 
 #import task1.britneyworld as bw
 import random 
 import numpy as np
+import utils.utils as utils
 
 def random_policy():
     return random.choice(["N", "E", "S", "W", "NE", "SE", "SW", "NW" ,"push"])
+
 
 def run_episode(env, policy, stumble_probability, print_iter=False):
     total_reward = 0
@@ -26,13 +28,14 @@ def run_episode(env, policy, stumble_probability, print_iter=False):
     return iterations, total_reward
             
             
+
 env = bw.Environment(10)
 env.reset()
 episodes = 1
 total_iterations = 0
 total_reward = 0
 for episode in range(episodes):
-    iterations, reward = run_episode(env, random_policy(), stumble_probability=0.1)
+    iterations, reward = utils.run_episode(env, random_policy(), stumble_probability=0.1)
     total_iterations += iterations
     total_reward += reward
     env.reset()
