@@ -8,27 +8,6 @@ def random_policy():
     return random.choice(["N", "E", "S", "W", "NE", "SE", "SW", "NW" ,"push"])
 
 
-def run_episode(env, policy, stumble_probability, print_iter=False):
-    total_reward = 0
-    done = False
-    iterations = 0
-    while not done:
-        iterations += 1
-        observations, reward, done = env.take_action_guard(policy)
-        total_reward += reward
-        env.britney_stubmles(stumble_probability)
-        # done = env.run(random_policy())
-        print(policy)
-        print(env.guard_location)
-        if iterations % 10 == 0:
-            env.display()
-        if done == True and print_iter == True:
-            print("It took {} iterations for Britney to reach the car".format(
-                iterations))
-    return iterations, total_reward
-            
-            
-
 env = bw.Environment(10)
 env.reset()
 episodes = 1
