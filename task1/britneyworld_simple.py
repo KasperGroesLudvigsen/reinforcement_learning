@@ -15,7 +15,7 @@ import random
 
 class Environment:
     
-    def __init__(self, N, stumble_prob):
+    def __init__(self, N):
         
         if N < 4:
             raise Exception('N must be larger than 3')
@@ -29,26 +29,26 @@ class Environment:
         self.map[:,0] = 1
         self.map[:,-1] = 1
         
-        self.britney_start_location = None
+        #self.britney_start_location = None
         self.guard_start_location = None
         
         self.guard_location = None 
-        self.britney_location = None
-        self.stumple_prob = stumble_prob
+        #self.britney_location = None
+        #self.stumple_prob = stumble_prob
         self.car_location = None
         self.reward = None
         # our 'dictionary' where we assign a single number for each coordinate
         #self.locations = [[x,y] for x in range(N) for y in range(N)] 
-        index_states = np.arange(0, (N*N)**2)
+        index_states = np.arange(0, (N*N))
         np.random.shuffle(index_states)
-        self.states = index_states.reshape(N,N,N,N)
+        self.states = index_states.reshape(N,N)
         #are training it on an environment then it should stay the same through training?
         
         # run time ###Q3: do we want this?
         self.time_elapsed = 0
-        self.guard_actions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+        #self.guard_actions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
         self.time_limit = self.size**2
-        self.britney_actions = ["N", "S", "E", "W"]
+        self.guard_actions = ["N", "S", "E", "W"]
         self.dict_map_display = { 0:'.', # Nothing
                                   1:'X', # Obstacle
                                   2:'B', # Britney
@@ -92,7 +92,7 @@ class Environment:
             guard_location = self.get_next_position(action, guard_location) # make a function is space empty that checks if it is zero and if it has noone on it
                 #self.guard_location = next_position
         
-        britney_location = self.britney_stumbles(self.stumple_prob, britney_location)
+        #britney_location = self.britney_stumbles(self.stumple_prob, britney_location)
         
         # calculate observations
         # returns surrounding cells and relative coordinates to exit
@@ -110,15 +110,15 @@ class Environment:
         
         # changed from agent_location to britney_location as the objective 
         # is to get britney to the car
-        if (britney_location == self.car_location).all():
+        if (guard_location == self.car_location).all():
             reward += self.size**2
             print("Britney got to her car safely")
             done = True
         
-        self.britney_location = britney_location
+        #self.britney_location = britney_location
         self.guard_location = guard_location
         
-        state = self.states[guard_location[0]][guard_location[1]][britney_location[0]][britney_location[1]]
+        state = self.states[guard_location[0]][guard_location[1]]#[britney_location[0]][britney_location[1]]
         return state, reward, done    
 
     def is_empty(self, position):
@@ -271,7 +271,7 @@ class Environment:
         return reward, done
     
     def get_state(self):
-        state = self.states[self.guard_location[0]][self.guard_location[1]][self.britney_location[0]][self.britney_location[1]]
+        state = self.states[self.guard_location[0]][self.guard_location[1]]#[self.britney_location[0]][self.britney_location[1]]
         return state
     
 
