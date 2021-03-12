@@ -52,15 +52,9 @@ def unittest_any_grid_size():
     env.reset()
     env = bw.Environment(50, 0.1)
     env.reset()    
-    env = bw.Environment(100, 0.1)
-    env.reset()
     env = bw.Environment(104, 0.1)
     env.reset()
-    env = bw.Environment(263, 0.1)
-    env.reset()
-    env = bw.Environment(1000, 0.1)
-    env.reset()
-  
+
 unittest_any_grid_size()
 
 def unittest_push_britney():
@@ -68,10 +62,10 @@ def unittest_push_britney():
     env.reset()
     env.britney_location = np.array([3,3])
     env.guard_location = np.array([3,4])    
-    env.push_britney()
+    briney_loc = env.push_britney(env.britney_location, env.guard_location)
     
-    assert env.britney_location[0] == 3
-    assert env.britney_location[1] == 2
+    assert briney_loc[0] == 3
+    assert briney_loc[1] == 2
     
 unittest_push_britney()
 
@@ -102,7 +96,7 @@ def unittest_are_locations_adjacent():
 
 unittest_are_locations_adjacent()
 
-"""
+
 def unittest_move_ass():
 
     britney_loc = np.array([3,3])
@@ -124,7 +118,7 @@ def unittest_move_ass():
 
 unittest_move_ass()
 
-"""
+
 
 
 
