@@ -9,7 +9,7 @@ import task1.britneyworld as bw
 import numpy as np
 
     
-
+# TEST
 
 class AssassinWorld(bw.Environment):
     """
