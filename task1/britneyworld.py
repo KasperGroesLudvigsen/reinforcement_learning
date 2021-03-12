@@ -15,6 +15,8 @@ import random
 
 class Environment:
     
+    
+    
     def __init__(self, N, stumble_prob):
         
         if N < 4:
@@ -29,13 +31,13 @@ class Environment:
         self.map[:,0] = 1
         self.map[:,-1] = 1
         
-        self.britney_start_location = None
-        self.guard_start_location = None
+        self.britney_start_location = np.array([2,2])
+        self.guard_start_location = np.array([1,1])
         
-        self.guard_location = None 
-        self.britney_location = None
+        self.guard_location = self.britney_start_location 
+        self.britney_location = self.guard_start_location
         self.stumple_prob = stumble_prob
-        self.car_location = None
+        self.car_location = np.array([N-2, N-2])
         self.reward = None
         # our 'dictionary' where we assign a single number for each coordinate
         #self.locations = [[x,y] for x in range(N) for y in range(N)] 
@@ -76,40 +78,26 @@ class Environment:
             
         
     def take_action_guard(self, guard_location, britney_location, action):
-        #could change this so that input is state
-        
-         # At every timestep, the agent receives a negative reward
+        # At every timestep, the agent receives a negative reward
         reward = -1
-        
+        self.time_elapsed += 1        
         
         if action == "push":
-            if self.are_locations_adjacent(self.britney_location, self.guard_location):
+            if self.are_locations_adjacent(britney_location, guard_location):#(self.britney_location, self.guard_location):
                 britney_location = self.push_britney(britney_location, guard_location)
-            
         else:
             # agent only moves into next position if it is open space
             #if self.is_empty(next_position):
-            guard_location = self.get_next_position(action, guard_location) # make a function is space empty that checks if it is zero and if it has noone on it
-                #self.guard_location = next_position
-        
+            guard_location = self.get_next_position(action, guard_location)
+
         britney_location = self.britney_stumbles(self.stumple_prob, britney_location)
-        
-        # calculate observations
-        # returns surrounding cells and relative coordinates to exit
-        #observations = self.calculate_observations()
-        
-        # update time
-        self.time_elapsed += 1
-        
-        # verify termination condition
+    
         done = False
-        
+    
         if self.time_elapsed == self.time_limit:
             print("Time limit reached")
             done = True
         
-        # changed from agent_location to britney_location as the objective 
-        # is to get britney to the car
         if (britney_location == self.car_location).all():
             reward += self.size**2
             print("Britney got to her car safely")
@@ -119,14 +107,18 @@ class Environment:
         self.guard_location = guard_location
         
         state = self.states[guard_location[0]][guard_location[1]][britney_location[0]][britney_location[1]]
+        
         return state, reward, done    
 
     def is_empty(self, position):
+        """
+        Helper function for get_next_position() to check if a call is empty, 
+        i.e. no other agent is on it
+        """
         a = self.map[position[0]][position[1]]==0
         b = position[0] == self.guard_location[0] and position[1] == self.guard_location[1] 
         c = position[0] == self.britney_location[0] and position[1] == self.britney_location[1] 
         return a and not b and not c
-        
         
         
     def get_neighbors(self, location):
@@ -154,32 +146,47 @@ class Environment:
             return self.get_next_position(action, britney_location)
         return britney_location
         
-            # Britney only moves if the cell she moves to is not an obstacle
-            #if self.is_empty(new_britney_location):
-              #  self.britney_location = new_britney_location
             
-    def get_next_position(self, action, current_location):       
+    def get_next_position(self, action, current_location):
+        """
+        Computes next location given some action and returns that location if
+        it is empty. If it is not empty, e.g. if britney is on it, return 
+        current location. 
+        """
         if action == 'N': # North, i.e. up
             next_location = np.array((current_location[0] - 1, current_location[1]))
+            if self.is_empty(next_location):
+                return next_location
         if action == 'S': # South, i.e. down
             next_location = np.array((current_location[0] + 1, current_location[1] ))
+            if self.is_empty(next_location):
+                return next_location
         if action == 'W': # West, i.e. left
             next_location = np.array((current_location[0] , current_location[1] - 1 ))
+            if self.is_empty(next_location):
+                return next_location
         if action == 'E': # East, i.e. right
             next_location = np.array((current_location[0] , current_location[1] + 1))
+            if self.is_empty(next_location):
+                return next_location
         if action == 'NE': # North east
             next_location = np.array((current_location[0] - 1, current_location[1] + 1))
+            if self.is_empty(next_location):
+                return next_location
         if action == "SE": # South east
             next_location = np.array((current_location[0] + 1, current_location[1] + 1))
+            if self.is_empty(next_location):
+                return next_location
         if action == "SW": # South west
             next_location = np.array((current_location[0] + 1, current_location[1] - 1))
+            if self.is_empty(next_location):
+                return next_location
         if action == "NW": # North west
             next_location = np.array((current_location[0] - 1, current_location[1] -1))
-        
-        if self.is_empty(next_location):
-            return next_location
-        else:
-            return current_location
+            if self.is_empty(next_location):
+                return next_location        
+
+        return current_location
         
     def display(self):
         # Lifted from Michael's code
@@ -238,6 +245,9 @@ class Environment:
         return observations
     
     def respawn(self):
+        """
+        Puts britney and guard back in original locations
+        """
         self.time_elapsed = 0
         self.britney_location = self.britney_start_location
         self.guard_location = self.guard_start_location
@@ -246,7 +256,6 @@ class Environment:
     def calculate_observations(self):
         
         relative_coordinates = self.car_location - self.guard_location
-                
         surroundings = self.map[ self.guard_location[0] -1: self.guard_location[0] +2,
                                      self.guard_location[1] -1: self.guard_location[1] +2]
         
@@ -254,24 +263,10 @@ class Environment:
                'surroundings': surroundings}
         
         return obs
-
-    # We should consider whether we actually need this method. Not much happens in
-    # that could couldnt be handled outside the class methods
-    def run(self, action): 
-        
-        done = False
-
-        observations, reward, done = self.move_agent(action)
-        self.move_britney()
-        
-        #if (self.britney_location == self.car_location).all():
-        #    reward += self.size**2
-        #    done = True
-        
-        return reward, done
     
     def get_state(self):
-        state = self.states[self.guard_location[0]][self.guard_location[1]][self.britney_location[0]][self.britney_location[1]]
+        state = self.states[self.guard_location[0]][self.guard_location[1]]\
+            [self.britney_location[0]][self.britney_location[1]]
         return state
     
 
