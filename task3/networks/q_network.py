@@ -35,8 +35,9 @@ class QNet(nn.Module):
         """
         super().__init__()
         
+        layer_sizes = [num_obs + num_actions] + list(hidden_sizes) + [num_obs]
+        self.q = utils.mlp(sizes=layer_sizes, activation=activation_func)
         self.checkpoint_file = os.path.join(checkpoint_dir, name+"_sac.pt")
-        self.q = utils.mlp([num_obs + num_actions] + list(hidden_sizes) + [1], activation_func)
         
     def forward(self, observation, action):
         q = self.q(torch.cat([observation, action], dim=-1))
