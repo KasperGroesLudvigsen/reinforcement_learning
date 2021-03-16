@@ -105,14 +105,14 @@ class Environment:
         done = False
         
         if self.time_elapsed == self.time_limit:
-            print("Time limit reached")
+            #print("Time limit reached")
             done = True
         
         # changed from agent_location to britney_location as the objective 
         # is to get britney to the car
         if (britney_location == self.car_location).all():
             reward += self.size**2
-            print("Britney got to her car safely")
+            #print("Britney got to her car safely")
             done = True
         
         self.britney_location = britney_location
@@ -221,6 +221,7 @@ class Environment:
         
         # Setting Britney's location
         self.britney_start_location = self.get_empty_cells(1)
+        #self.britney_start_location = np.array([2,2])
         self.britney_location = self.britney_start_location
         
         # The guard is spawned onto a location next to Britney, but cannot spawn
@@ -231,6 +232,7 @@ class Environment:
         self.guard_location = self.guard_start_location
         # Setting car location 
         self.car_location = self.get_empty_cells(1)
+        #self.car_location = np.array([self.size-3,self.size-3])
         
         # Calculate observations
         observations = self.calculate_observations()
