@@ -13,9 +13,9 @@ from torch.distributions.normal import Normal
 import numpy as np
 from abc import ABC, abstractmethod
 
-class QNet(nn.Module):
+class PiNet(nn.Module):
     """
-        This class is the critic network. It evaluates the value of a state and 
+        This class is the actor network. It evaluates the value of a state and 
         action pair. 
         
         lr : learning rate
@@ -44,37 +44,14 @@ class QNet(nn.Module):
         self.q = nn.Linear(self.fc2_dims, self.num_actions)
     
 
-    def activation(self, input, func):
-        """
-        This method is meant to make it easy to adjust the activation function.
-        Pass the activation function as string and it will be evaluated at runtime
-        The torch libary is imported as T. Example:
-            
-            
 
-        Parameters
-        ----------
-        input : Tensor
-            Output from fully connected layer
-        
-        func : STR
-            The activation function to be used. Should be passed as string, e.g.
-            "T.relu(input)". It will be evaluated at runtime via eval()
-
-        Returns
-        -------
-        Input after activation function
-
-        """
-
-        return eval(func)
     
     def forward(self, state, action):
-        action_values = self.fc1(state) #T.cat([state, action], dim=1))
-        action_values = self.activation(self.activation_func)
-        action_values = self.fc2(action_values)
-        action_values = self.activation(self.activation_func)
-        q = self.q(action_values)
+        action_value = self.fc1(T.cat([state, action], dim=1))
+        action_value = self.activation(self.activation_func)
+        action_value = self.fc2(action_value)
+        action_value = self.activation(self.activation_func)
+        q = self.q(action_value)
         
         return q
     
@@ -83,6 +60,3 @@ class QNet(nn.Module):
         
     def load_checkpoint(self):
         self.load_state_dict(T.load(self.checkpoint_file))
-        
-        
-   
