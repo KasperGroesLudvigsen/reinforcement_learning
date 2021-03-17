@@ -48,6 +48,7 @@ class QNet(nn.Module):
         
     def load_checkpoint(self):
         self.load_state_dict(torch.load(self.checkpoint_file))
+        
 
 
 
