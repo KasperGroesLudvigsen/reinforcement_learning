@@ -4,13 +4,12 @@ Created on Mon Mar 15 16:01:46 2021
 
 @author: groes
 """
-import collections
 import numpy as np
 
 class ReplayBuffer:
     # Adapted from: 
     # https://www.youtube.com/watch?v=ioidsRlf79o&ab_channel=MachineLearningwithPhil
-    def __init__(self, memory_size, input_shape, num_actions):
+    def __init__(self, input_shape, num_actions, memory_size=1000000):
         """
         memory_size : max size of memory
         input_shape : shape/dimensions of observation from environment
