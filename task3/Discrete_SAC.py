@@ -61,13 +61,13 @@ class DiscreteSAC:
         
         # Estimate target q_value
         with torch.no_grad():
+            # Produce two q values
             q_next_target = self.qnet_target(next_state_batch) # estimate via q_net
             q_next_target2 = self.qnet_target2(next_state_batch)
-    
-            action_probabilities = self.calc_action_prob()
-            log_action_probabilities = self.calculate_log_prob()
-            
             qf_min = torch.min(q_next_target, q_next_target2)
+    
+            action_probabilities = self.calc_action_prob() # TBD - it's the policy network
+            log_action_probabilities = self.calc_log_prob() # tbd
             
             # Calculate policy value
             v = action_probabilities * qf_min - self.alpha * log_action_probabilities
@@ -89,8 +89,11 @@ class DiscreteSAC:
         
         return q1_loss, q2_loss
         
-    def calc_log_prob(self):
-        pass
+    def calc_log_prob(self, action_probabilities):
+        z = action_probabilities == 0.0
+        z = z.float() * 1e-8
+        return torch.log(action_probabilities + z)
     
     def calc_action_prob(self):
+        # This is supposed to be the policy network
         pass
