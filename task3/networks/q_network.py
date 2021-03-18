@@ -35,7 +35,7 @@ class QNet(nn.Module):
         """
         super().__init__()
         
-        layer_sizes = [num_obs + num_actions] + list(hidden_sizes) + [num_obs]
+        layer_sizes = [num_obs] + list(hidden_sizes) + [num_actions]
         self.q = utils.mlp(sizes=layer_sizes, activation=activation_func)
         self.checkpoint_file = os.path.join(checkpoint_dir, name+"_sac.pt")
         
