@@ -119,7 +119,82 @@ def unittest_move_ass():
 unittest_move_ass()
 
 
-
+def unittest_pull_britney():
+    env_size = 10
+    env = bw.Environment(env_size, 0.2)
+    env.reset()
+    
+    test_loc_britney = np.array([0, 0])
+    test_loc_guard = np.array([1, 1])
+    
+    env.britney_location = test_loc_britney.copy()
+    env.guard_location = test_loc_guard.copy()
+    
+    britney_loc, guard_loc = env.pull_britney(env.britney_location,
+                                              env.guard_location)
+    
+    assert np.array_equal(britney_loc, test_loc_guard)
+    assert np.array_equal(guard_loc, test_loc_guard)
+    
+    test_loc_britney = np.array([0, 0])
+    test_loc_guard = np.array([0, 1])
+    
+    env.britney_location = test_loc_britney.copy()
+    env.guard_location = test_loc_guard.copy()
+    
+    britney_loc, guard_loc = env.pull_britney(env.britney_location,
+                                              env.guard_location)
+    
+    assert np.array_equal(britney_loc, test_loc_guard)
+    assert np.array_equal(guard_loc, test_loc_guard)
+    
+    test_loc_britney = np.array([env_size-2, env_size-2])
+    test_loc_guard = np.array([env_size-3, env_size-3])
+    
+    env.britney_location = test_loc_britney.copy()
+    env.guard_location = test_loc_guard.copy()
+    
+    britney_loc, guard_loc = env.pull_britney(env.britney_location,
+                                              env.guard_location)
+    
+    assert np.array_equal(britney_loc, test_loc_guard)
+    assert np.array_equal(guard_loc, test_loc_guard)
+    
+    test_loc_britney = np.array([env_size-2, 1])
+    test_loc_guard = np.array([env_size-3, 1])
+    
+    env.britney_location = test_loc_britney.copy()
+    env.guard_location = test_loc_guard.copy()
+    
+    britney_loc, guard_loc = env.pull_britney(env.britney_location,
+                                              env.guard_location)
+    
+    assert np.array_equal(britney_loc, np.array([7, 2]))
+    assert np.array_equal(guard_loc, test_loc_britney)
+    
+    test_loc_britney = np.array([1, 5])
+    test_loc_guard = np.array([2, 5])
+    
+    env.britney_location = test_loc_britney.copy()
+    env.guard_location = test_loc_guard.copy()
+    
+    britney_loc, guard_loc = env.pull_britney(env.britney_location,
+                                              env.guard_location)
+    
+    assert np.array_equal(test_loc_britney, guard_loc)
+    assert np.array_equal(test_loc_guard, britney_loc)
+    
+    test_loc_britney = np.array([1, 5])
+    test_loc_guard = np.array([1, 4])
+    
+    env.britney_location = test_loc_britney.copy()
+    env.guard_location = test_loc_guard.copy()
+    
+    britney_loc, guard_loc = env.pull_britney(env.britney_location,
+                                              env.guard_location)
+    
+    assert np.array_equal(britney_loc, np.array([2, 5]))
+    assert np.array_equal(guard_loc, test_loc_britney)
 
 
 

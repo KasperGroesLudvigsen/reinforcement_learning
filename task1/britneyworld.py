@@ -48,7 +48,7 @@ class Environment:
         
         # run time ###Q3: do we want this?
         self.time_elapsed = 0
-        self.guard_actions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW", "push"]
+        self.guard_actions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW", "push", "pull"]
         self.time_limit = self.size**2
         self.britney_actions = ["N", "S", "E", "W"]
         self.dict_map_display = { 0:'.', # Nothing
@@ -85,6 +85,9 @@ class Environment:
         if action == "push":
             if self.are_locations_adjacent(britney_location, guard_location):#(self.britney_location, self.guard_location):
                 britney_location = self.push_britney(britney_location, guard_location)
+        elif action == "pull":
+            if self.are_locations_adjacent(britney_location, guard_location):
+                britney_location, guard_location = self.pull_britney(britney_location, guard_location)
         else:
             # agent only moves into next position if it is open space
             #if self.is_empty(next_position):
@@ -109,6 +112,27 @@ class Environment:
         state = self.states[guard_location[0]][guard_location[1]][britney_location[0]][britney_location[1]]
         
         return state, reward, done    
+    
+    def pull_britney(self, britney_location, guard_location):
+        
+        guard_location = britney_location.copy()
+        
+        x_change = 0
+        y_change = 0
+        
+        if britney_location[0] == 1:
+            x_change = 1
+        if britney_location[0] == self.size-2:
+            x_change = -1
+        if britney_location[1] == 1:
+            y_change = 1
+        if britney_location[1] == self.size-2:
+            y_change = -1
+            
+        britney_location[0] += x_change
+        britney_location[1] += y_change
+        
+        return britney_location, guard_location
 
     def is_empty(self, position):
         """
