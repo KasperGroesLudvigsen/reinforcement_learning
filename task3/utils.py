@@ -6,6 +6,8 @@ Created on Tue Mar 16 15:46:25 2021
 """
 
 import torch.nn as nn
+import numpy as np
+import torch
 
 def mlp(sizes, activation, output_activation=nn.Identity):
     layers = []
@@ -13,3 +15,15 @@ def mlp(sizes, activation, output_activation=nn.Identity):
         act = activation if j < len(sizes)-2 else output_activation
         layers += [nn.Linear(sizes[j], sizes[j+1]), act()]
     return nn.Sequential(*layers)
+
+
+def convert_state(state, env_size, norm, device):
+    # Lifted from lab 7 feedback
+    
+    c = state['relative_coordinates'].flatten()/env_size
+    o = state['surroundings'].flatten()/norm
+    state_tensor = np.concatenate([c,o])
+    state_tensor = torch.tensor(state_tensor, device=device).unsqueeze(0)
+    
+    return state_tensor
+    
