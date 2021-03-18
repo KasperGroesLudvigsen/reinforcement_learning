@@ -33,6 +33,7 @@ class QNet(nn.Module):
         name : name (str) of QNet when saved
 
         """
+
         super().__init__()
         
         layer_sizes = [num_obs] + list(hidden_sizes) + [num_actions]
