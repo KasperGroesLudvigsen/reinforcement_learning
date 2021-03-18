@@ -86,8 +86,9 @@ class DiscreteSAC:
         
         q1_loss = F.mse_loss(q1, target_q_value)
         q2_loss = F.mse_loss(q2, target_q_value)
+        min_q_loss = torch.min(q1_loss, q2_loss)
         
-        return q1_loss, q2_loss
+        return q1_loss, q2_loss, min_q_loss
         
     def calc_log_prob(self, action_probabilities):
         z = action_probabilities == 0.0
@@ -97,3 +98,49 @@ class DiscreteSAC:
     def calc_action_prob(self):
         # This is supposed to be the policy network
         pass
+    
+
+    
+    
+    def policy_loss(self, state_batch, action_batch, reward_batch, next_state_batch, dones_batch):
+        """Calculates the loss for the actor. This loss includes the additional entropy term"""
+        #action, (action_probabilities, log_action_probabilities), _ = self.produce_action_and_action_info(state_batch)
+        #qf1_pi = self.critic_local(state_batch)
+        #qf2_pi = self.critic_local_2(state_batch)
+        _, _, min_qf_pi = self.calc_q_loss(state_batch, action_batch, reward_batch, next_state_batch, dones_batch)
+        
+        action_probabilities = self.calc_action_prob()
+        log_action_probabilities = self.calc_log_prob(action_probabilities)
+        
+        
+        inside_term = self.alpha * log_action_probabilities - min_qf_pi
+        policy_loss = (action_probabilities * inside_term).sum(dim=1).mean()
+        log_action_probabilities = torch.sum(log_action_probabilities * action_probabilities, dim=1)
+        return policy_loss, log_action_probabilities
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
