@@ -5,84 +5,58 @@ Created on Tue Mar 16 10:36:26 2021
 @author: groes
 """
 import os
-import torch as T
-import torch.nn.functional as F
+import torch
 import torch.nn as nn
-import torch.optim as optim
-from torch.distributions.normal import Normal
-import numpy as np
-from abc import ABC, abstractmethod
+import utils
+
+
 
 class QNet(nn.Module):
-    """
+    # adapted from:
+    # https://github.com/openai/spinningup/blob/038665d62d569055401d91856abb287263096178/spinup/algos/pytorch/sac/core.py#L91
+
+    def __init__(self, num_obs, num_actions, hidden_sizes, activation_func, 
+                 name, checkpoint_dir = "tmp/sac"):
+        """
         This class is the critic network. It evaluates the value of a state and 
         action pair. 
         
-        lr : learning rate
-        input_dims : numbre of input dimensions from env
+        num_obs : number (int) of observations  from env
         
-        activation_func : STR
-            The activation function to be used. Should be passed as string, e.g.
-            "T.relu(input)". It will be evaluated at runtime via eval()
-    """
-    
-    def __init__(self, lr, input_dims, num_actions, name, activation_func, 
-                 checkpoint_dir = "tmp/sac", fc1_dims=256, fc2_dims=256):
+        num_actions : number (int) of actions available to the agent
+        
+        hidden_sizes : tuple of ints where each int represents the number of
+            neurons in a hidden layer
+        
+        activation_func : activation function, e.g. "nn.ReLU" (without parenthesis)
+        
+        name : name (str) of QNet when saved
+
+        """
+
         super().__init__()
         
-        self.input_dims
-        self.fc1_dims = fc1_dims
-        self.fc2_dims = fc2_dims
-        self.num_actions = num_actions
-        self.name = name
-        self.checkpoint_dir = checkpoint_dir
-        self.checkpoint_file = os.path.join(self.checkpoint_dir, name+"_sac.pt")
-        self.activation_function = activation_func
+        layer_sizes = [num_obs] + list(hidden_sizes) + [num_actions]
+        self.q = utils.mlp(sizes=layer_sizes, activation=activation_func)
+        self.checkpoint_file = os.path.join(checkpoint_dir, name+"_sac.pt")
         
-        self.fc1 = nn.Linear(self.input_dims[0], self.fc1_dims)
-        self.fc2 = nn.Linear(self.fc1_dims, self.fc2_dims)
-        self.q = nn.Linear(self.fc2_dims, self.num_actions)
-    
-
-    def activation(self, input, func):
-        """
-        This method is meant to make it easy to adjust the activation function.
-        Pass the activation function as string and it will be evaluated at runtime
-        The torch libary is imported as T. Example:
-            
-            
-
-        Parameters
-        ----------
-        input : Tensor
-            Output from fully connected layer
-        
-        func : STR
-            The activation function to be used. Should be passed as string, e.g.
-            "T.relu(input)". It will be evaluated at runtime via eval()
-
-        Returns
-        -------
-        Input after activation function
-
-        """
-
-        return eval(func)
-    
-    def forward(self, state, action):
-        action_values = self.fc1(state) #T.cat([state, action], dim=1))
-        action_values = self.activation(self.activation_func)
-        action_values = self.fc2(action_values)
-        action_values = self.activation(self.activation_func)
-        q = self.q(action_values)
-        
-        return q
+    def forward(self, observation, action):
+        q = self.q(torch.cat([observation, action], dim=-1))
+        return torch.squeeze(q, -1)
     
     def save_checkpoint(self):
-        T.save(self.state_dict(), self.checkpoint_file)
+        torch.save(self.state_dict(), self.checkpoint_file)
         
     def load_checkpoint(self):
-        self.load_state_dict(T.load(self.checkpoint_file))
+        self.load_state_dict(torch.load(self.checkpoint_file))
         
-        
-   
+
+
+
+
+
+
+
+
+
+
