@@ -40,8 +40,8 @@ class QNet(nn.Module):
         self.q = utils.mlp(sizes=layer_sizes, activation=activation_func)
         self.checkpoint_file = os.path.join(checkpoint_dir, name+"_sac.pt")
         
-    def forward(self, observation, action):
-        q = self.q(torch.cat([observation, action], dim=-1))
+    def forward(self, observation):
+        q = self.q(observation)
         return torch.squeeze(q, -1)
     
     def save_checkpoint(self):
