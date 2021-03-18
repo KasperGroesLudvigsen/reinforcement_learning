@@ -41,7 +41,7 @@ class PiNet(nn.Module):
         
         self.fc1 = nn.Linear(self.input_dims[0], self.fc1_dims)
         self.fc2 = nn.Linear(self.fc1_dims, self.fc2_dims)
-        self.q = nn.Linear(self.fc2_dims, self.num_actions)
+        self.q = nn.Linear(self.fc2_dims, self.num_actionsgit )
     
 
 
