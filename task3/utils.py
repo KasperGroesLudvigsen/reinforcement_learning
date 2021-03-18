@@ -19,7 +19,16 @@ def mlp(sizes, activation, output_activation=nn.Identity):
 
 def convert_state(state, env_size, norm, device):
     # Lifted from lab 7 feedback
+    """
+    state (dict) : dictionary with relative coordinates and agent's surroundings
     
+    env_size (int) : length of the environment's sides
+    
+    norm (float) : some float, e.g. 4.0, by which to normalize surroundings
+    
+    device (torch object) : GPU or CPU
+    
+    """
     c = state['relative_coordinates'].flatten()/env_size
     o = state['surroundings'].flatten()/norm
     state_tensor = np.concatenate([c,o])
