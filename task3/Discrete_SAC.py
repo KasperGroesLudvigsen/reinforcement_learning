@@ -56,7 +56,7 @@ class DiscreteSAC:
             )
         
     
-    def calc_q_loss(self, state_batch, action_batch, reward_batch, next_state_batch, dones_batch):
+    def calc_q_loss(self, state_batch, action_batch, reward_batch, next_state_batch, mask_batch):
         """ Loss function for qnet """
         
         # Estimate target q_value
@@ -73,8 +73,8 @@ class DiscreteSAC:
             v = action_probabilities * qf_min - self.alpha * log_action_probabilities
             v = v.sum(dim=1).unsqueeze(-1)
             
-            # Dunno why (1.0 - dones_batch) is used, but he does it in his implementation
-            target_q_value = reward_batch + (1.0 - dones_batch) + self.gamma * v 
+            # Mask batch indicates whether the state is terminal
+            target_q_value = reward_batch + (1.0 - mask_batch) + self.gamma * v 
         
 
         # Estimate q values with net and gather values
