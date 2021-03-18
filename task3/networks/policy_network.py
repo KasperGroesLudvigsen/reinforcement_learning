@@ -29,7 +29,7 @@ class PiNet(nn.Module):
         self.checkpoint_file = os.path.join(checkpoint_dir, name+"_sac.pt")
         
     def forward(self, observation):
-        q = self.q(observation, dim=-1))
+        q = self.q(observation)
         return torch.squeeze(q, -1)
     
     def save_checkpoint(self):
