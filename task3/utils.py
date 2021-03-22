@@ -18,7 +18,7 @@ def mlp(sizes, activation, output_activation=nn.Identity):
 
 
 def convert_state(state, env_size, norm, device):
-    # Lifted from lab 7 feedback
+    # Adapted from lab 7 feedback
     """
     state (dict) : dictionary with relative coordinates and agent's surroundings
     
@@ -29,9 +29,10 @@ def convert_state(state, env_size, norm, device):
     device (torch object) : GPU or CPU
     
     """
-    c = state['relative_coordinates'].flatten()/env_size
+    rel_coor_car = state['relative_coordinates_car'].flatten()/env_size
+    rel_coor_britney = state['relative_coordinates_britney'].flatten()/env_size
     o = state['surroundings'].flatten()/norm
-    state_tensor = np.concatenate([c,o])
+    state_tensor = np.concatenate([rel_coor_car, rel_coor_britney, o])
     state_tensor = torch.tensor(state_tensor, device=device).unsqueeze(0)
     
     return state_tensor
