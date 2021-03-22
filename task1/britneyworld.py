@@ -11,19 +11,20 @@ See movement mechanism specifications in report
 
 import numpy as np
 import random
-
+import math
 
 class Environment:
     
     
     
-    def __init__(self, N, stumble_prob):
+    def __init__(self, N, stumble_prob, obs_size=5):
         
         if N < 4:
             raise Exception('N must be larger than 3')
         
         self.map = np.zeros((N,N))
         self.size = N
+        self.obs_size = obs_size
         
         # creating borders
         self.map[0,:] = 1
@@ -266,7 +267,7 @@ class Environment:
         #self.car_location = np.array([self.size-3,self.size-3])
         
         # Calculate observations
-        observations = self.calculate_observations()
+        observations = self.calculate_observations(self.obs_size)
         
         return observations
     
@@ -279,13 +280,31 @@ class Environment:
         self.guard_location = self.guard_start_location
         
 
-    def calculate_observations(self):
+    def calculate_observations(self, obs_size):
+        """
+        args:
+            obs_size (int) : side length of the n*n partition that the agent can observe
+        """
+         
+        lower_bound = math.floor(obs_size / 2)
+        upper_bound = lower_bound + 1 # +1 because slicing np.arrays is not inclusive
         
-        relative_coordinates = self.car_location - self.guard_location
-        surroundings = self.map[ self.guard_location[0] -1: self.guard_location[0] +2,
-                                     self.guard_location[1] -1: self.guard_location[1] +2]
         
-        obs = {'relative_coordinates':relative_coordinates,
+        relative_coordinates_car = self.car_location - self.guard_location
+        relative_coordinates_britney = self.britney_location - self.guard_location
+        
+        x1, y1 = self.guard_location[0] -lower_bound, self.guard_location[0] +upper_bound
+        x2, y2 = self.guard_location[1] -lower_bound, self.guard_location[1] +upper_bound
+        
+        if x1 < 0:
+            x1 = 0
+        if x2 < 0:
+            x2 = 0
+        
+        surroundings = self.map[x1:y1, x2:y2]
+        
+        obs = {'relative_coordinates_car': relative_coordinates_car,
+               'relative_coordinates_britney' : relative_coordinates_britney,
                'surroundings': surroundings}
         
         return obs

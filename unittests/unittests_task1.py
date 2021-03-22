@@ -9,7 +9,7 @@ Created on Wed Feb 24 15:03:47 2021
 import task1.britneyworld as bw
 import task1.assassinworld as r1
 import numpy as np
-
+import math
 
 def unittest_get_next_position():
     env = bw.Environment(10, 0.2)
@@ -17,6 +17,10 @@ def unittest_get_next_position():
     env.map = np.array([[0,0,0],
                         [0,0,0],
                         [0,0,0]])
+    
+    # Setting these locations in order to be unaffected by is_empty()
+    env.britney_location = np.array([1,1])
+    env.guard_location = np.array([1,1])
     
     next_position = env.get_next_position("N", np.array([1,1]))
     assert next_position[0] == 0 and next_position[1] == 1
@@ -198,7 +202,56 @@ def unittest_pull_britney():
 
 
 
-
-
+def unittest_calculate_observations():
+    observation_size = 5
+    env = bw.Environment(20, 0.2, observation_size)
+    env.reset()
+    env.guard_location = np.array([7,7])
+    observations = env.calculate_observations(observation_size)
+    surroundings = observations["surroundings"]
+    assert surroundings.shape == (observation_size, observation_size)
+    
+    observation_size = 3
+    env = bw.Environment(10, 0.2, observation_size)
+    env.reset()
+    observations = env.calculate_observations(observation_size)
+    surroundings = observations["surroundings"]
+    assert surroundings.shape == (observation_size, observation_size)
+    
+    observation_size = 21
+    env = bw.Environment(50, 0.2, observation_size)
+    env.reset()
+    env.guard_location = np.array([15,14])
+    observations = env.calculate_observations(observation_size)
+    surroundings = observations["surroundings"]
+    assert surroundings.shape == (observation_size, observation_size)
+    
+    observation_size = 10
+    env = bw.Environment(10, 0.2, observation_size)
+    env.reset()
+    env.guard_location = np.array([3,3])
+    observations = env.calculate_observations(observation_size)
+    surroundings = observations["surroundings"]
+    assert surroundings.shape == (9, 9)
+    
+    observation_size = 21
+    env = bw.Environment(50, 0.2, observation_size)
+    env.reset()
+    env.guard_location = np.array([1,1])
+    observations = env.calculate_observations(observation_size)
+    surroundings = observations["surroundings"]
+    shape = math.ceil(observation_size/2)+1 # +1 because of agent's own location
+    assert surroundings.shape == (shape, shape)
+    
+    observation_size = 21
+    env = bw.Environment(50, 0.2, observation_size)
+    env.reset()
+    env.guard_location = np.array([48,48])
+    observations = env.calculate_observations(observation_size)
+    surroundings = observations["surroundings"]
+    shape = math.ceil(observation_size/2)+1 # +1 because of agent's own location
+    assert surroundings.shape == (shape, shape)
+    
+    
 
 
