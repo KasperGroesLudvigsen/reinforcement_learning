@@ -10,6 +10,8 @@ import torch.nn.functional as F
 import networks.policy_network as pi_net
 import torch.nn as nn
 from copy import deepcopy
+import itertools
+from torch.optim import Adam
 
 class Actor_Critic(nn.Module):
     
@@ -36,55 +38,25 @@ class DiscreteSAC:
         self.alpha = params["alpha"]
         self.gamma = params["gamma"]
         
-        #self.qnet_target = qnet.QNet(
-        #    num_obs=params["num_obs"],
-        #    num_actions=params["num_actions"],
-        #    hidden_sizes=params["hidden_sizes"],
-        #    activation_func=params["activation_func"],
-        #    name=params["name"]
-        #    )
-        
-        #self.qnet_target2 = qnet.QNet(
-        #    num_obs=params["num_obs"],
-        #    num_actions=params["num_actions"],
-        #    hidden_sizes=params["hidden_sizes"],
-        #    activation_func=params["activation_func"],
-        #    name=params["name"]
-        #    )
-        
-        #self.qnet_local = qnet.QNet(
-        #    num_obs=params["num_obs"],
-        #    num_actions=params["num_actions"],
-        #    hidden_sizes=params["hidden_sizes"],
-        #    activation_func=params["activation_func"],
-        #    name=params["name"]
-        #    )
-        
-        #self.qnet_local2 = qnet.QNet(
-        #    num_obs=params["num_obs"],
-        #    num_actions=params["num_actions"],
-        #    hidden_sizes=params["hidden_sizes"],
-        #    activation_func=params["activation_func"],
-        #    name=params["name"]
-        #    )
-        
-        # Target networks are instantiated to be a copy of local networks, as per spinning up
-        # pseudo code
-        
-        #self.qnet_target = self.qnet_local
-        #self.qnet_target2 = self.qnet_local2
+
         
         ####################### ammended with spinning up ################
         self.actor_critic = Actor_Critic()
+        #a deep copy is for compound objects, it copies the object and then inserts copies of
+        #its components
+        #a shallow/normal copy copies and object then inserts references into the copy of
+        #the objects in the origional
         self.target_actor_critic = deepcopy(self.actor_critic)
-    
+        
+        #for efficient looping, just loops one after the other
         self.q_params = itertools.chain(self.actor_critic.q1.parameters(), self.actor_critic.q2.parameters())
             
-        self.pi_optimizer = Adam(self.actor_critic.pi.parameters(), lr=lr)
-        self.q_optimizer = Adam(q_params, lr=lr)        
+        self.pi_optimizer = Adam(self.actor_critic.pi.parameters(), lr=params["lr"])
+        self.q_optimizer = Adam(self.q_params, lr=params["lr"])        
         ###############################################################
     
-    def run(self):
+    def run(self, environment, policy, buffer, batchsize):
+        Done = False
         while not Done:
             self.environment_step(environment, policy, buffer)
             self.gradient_step(buffer, batchsize)
