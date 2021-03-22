@@ -251,7 +251,4 @@ def unittest_calculate_observations():
     surroundings = observations["surroundings"]
     shape = math.ceil(observation_size/2)+1 # +1 because of agent's own location
     assert surroundings.shape == (shape, shape)
-    
-    
-
 
