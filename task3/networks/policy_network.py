@@ -11,7 +11,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions.normal import Normal
 import numpy as np
-from abc import ABC, abstractmethod
+import reinforcement_learning.task3.utils as utils
 
 class PiNet(nn.Module):
     """
@@ -25,16 +25,16 @@ class PiNet(nn.Module):
         super().__init__()
         
         layer_sizes = [num_obs] + list(hidden_sizes) + [num_actions]
-        self.q = utils.mlp(sizes=layer_sizes, activation=activation_func, output_activation = nn.softmax)
+        self.q = utils.mlp(sizes=layer_sizes, activation=activation_func, output_activation = nn.Softmax)
         self.checkpoint_file = os.path.join(checkpoint_dir, name+"_sac.pt")
         
     def forward(self, observation):
         q = self.q(observation)
-        return torch.squeeze(q, -1)
+        return T.squeeze(q, -1)
     
     def save_checkpoint(self):
-        torch.save(self.state_dict(), self.checkpoint_file)
+        T.save(self.state_dict(), self.checkpoint_file)
         
     def load_checkpoint(self):
-        self.load_state_dict(torch.load(self.checkpoint_file))
+        self.load_state_dict(T.load(self.checkpoint_file))
         

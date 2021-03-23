@@ -5,9 +5,9 @@ Created on Wed Mar 17 14:09:10 2021
 @author: groes
 """
 import torch 
-import networks.q_network as qnet
+import reinforcement_learning.task3.networks.q_network as qnet
 import torch.nn.functional as F
-import networks.policy_network as pi_net
+import reinforcement_learning.task3.networks.policy_network as pi_net
 import torch.nn as nn
 from copy import deepcopy
 import itertools
@@ -15,13 +15,13 @@ from torch.optim import Adam
 
 class Actor_Critic(nn.Module):
     
-    def __init__(self):
+    def __init__(self, num_obs, num_actions, hidden_sizes, activation_func):
         super().__init__()
         
         
-        self.policy = pi_net()
-        self.q1 = qnet()
-        self.q2 = qnet()
+        self.policy = pi_net.PiNet(num_obs, num_actions, hidden_sizes, activation_func, "popo")
+        self.q1 = qnet.QNet(num_obs, num_actions, hidden_sizes, activation_func, "Q1")
+        self.q2 = qnet.QNet(num_obs, num_actions, hidden_sizes, activation_func, "Q2")
 
 class DiscreteSAC:
     """
@@ -32,7 +32,7 @@ class DiscreteSAC:
         https://github.com/p-christ/Deep-Reinforcement-Learning-Algorithms-with-PyTorch
         
     """
-    def __init__(self, params):
+    def __init__(self, ac_params, params):
 
         
         self.alpha = params["alpha"]
@@ -41,7 +41,12 @@ class DiscreteSAC:
 
         
         ####################### ammended with spinning up ################
-        self.actor_critic = Actor_Critic()
+        self.actor_critic = Actor_Critic(
+            ac_params['num_obs'],
+            ac_params['num_actions'],
+            ac_params['hidden_sizes'],
+            ac_params['activation_func']
+            )
         #a deep copy is for compound objects, it copies the object and then inserts copies of
         #its components
         #a shallow/normal copy copies and object then inserts references into the copy of
@@ -55,28 +60,28 @@ class DiscreteSAC:
         self.q_optimizer = Adam(self.q_params, lr=params["lr"])        
         ###############################################################
     
-    def run(self, environment, policy, buffer, batchsize):
-        Done = False
-        while not Done:
-            self.environment_step(environment, policy, buffer)
-            self.gradient_step(buffer, batchsize)
+    #def run(self, environment, policy, buffer, batchsize):
+     #   Done = False
+      #  while not Done:
+       #     self.environment_step(environment, policy, buffer)
+        #    self.gradient_step(buffer, batchsize)
         
 
 
         
-    def environment_step(self, environment, policy, buffer):
+    def environment_step(self, environment, buffer):
         # get state/observation from environment.
-        state = environment.get_state()
+        observation = environment.get_state()
         # get action from state using policy.
-        action = policy.get_action(state)
+        action = self.actor_critic.pi(observation)
         # get reward, next state, done from environment by taking action in the world.
-        new_state, reward, done = environment.take_step(action)
+        new_obs, reward, done = environment.take_step(action)
         # store the experience in D, experience replay buffer.
         if done:
             done_num = 1
         else:
             done_num = 0
-        buffer.append(state, action, reward, new_state, done_num)
+        buffer.append(obs, action, reward, new_obs, done_num)
         
         #spinning up records dones as 1 if True and 0 if False
         
@@ -109,12 +114,25 @@ class DiscreteSAC:
             p.requires_grad = True
             
         ######################### update target networks using polyak averaging ###################
-        with torch.no_grad():
-            for p, p_targ in zip(self.actor_critic.parameters(), self.target_actor_critic.parameters()):
-
-                p_targ.data.mul_(self.polyak)
-                p_targ.data.add_((1 - self.polyak) * p.data)        
+        self.polyak_target_update(self.actor_critic, self.target_actor_critic)
         
+        
+        
+        #with torch.no_grad():
+         #   for p, p_targ in zip(self.actor_critic.parameters(), self.target_actor_critic.parameters()):
+#
+ #               p_targ.data.mul_(self.polyak)
+  #              p_targ.data.add_((1 - self.polyak) * p.data)        
+   
+
+
+     
+    def polyak_target_update(self, local_model, target_model):
+        with torch.no_grad():
+            for local_param, target_param in zip(self.actor_critic.parameters(), self.target_actor_critic.parameters()):
+
+                target_param.data.mul_(self.polyak)
+                target_param.data.add_((1 - self.polyak) * local_param.data)    
     
     def calc_q_loss(self, state_batch, action_batch, reward_batch, next_state_batch, dones_batch):
         """ Loss function for qnet """
