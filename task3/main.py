@@ -9,6 +9,7 @@ import itertools
 from torch.optim import Adam
 import reinforcement_learning.task1.britneyworld as bw
 import reinforcement_learning.task3.buffer as buf
+
 environment_params = {
     'N' : 10,
     'stumble_prob' : 0.3
@@ -28,10 +29,17 @@ ac_params = {
 
 params = {
     'lr': 0.001,
-    'alpha' : 0.1
-    'gamma': 0.9
+    'alpha' : 0.1,
+    'gamma': 0.9,
     'batch_size': 32
     }
+
+from reinforcement_learning.task3.Discrete_SAC import DiscreteSAC 
+ds = DiscreteSAC(ac_params, params)
+environment = bw.Environment(environment_params)
+buffer = buf.ReplayBuffer(buffer_params['obs_dims'], buffer_params['number_of_actions'])
+
+
 
 def learning_environment(number_of_episodes):
     softac = sac.Actor_Critic(params)
