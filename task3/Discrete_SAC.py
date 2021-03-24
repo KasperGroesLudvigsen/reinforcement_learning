@@ -116,6 +116,8 @@ class DiscreteSAC:
         # Next run one gradient descent step for pi.
         self.pi_optimiser.zero_grad()
         policy_loss = self.policy_loss(states, actions, rewards, new_states, dones)
+        ########## apparently this should do it for gradient ascent
+        policy_loss = - policy_loss
         policy_loss.backward()
         self.pi_optimizer.step()
 
