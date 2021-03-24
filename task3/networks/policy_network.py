@@ -30,7 +30,7 @@ class PiNet(nn.Module):
         
     def forward(self, observation):
         q = self.q(observation)
-        return T.squeeze(q, -1)
+        return q#T.squeeze(q, -1)
     
     def save_checkpoint(self):
         T.save(self.state_dict(), self.checkpoint_file)

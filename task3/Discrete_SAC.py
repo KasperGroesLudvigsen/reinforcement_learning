@@ -56,7 +56,7 @@ class DiscreteSAC:
         #for efficient looping, just loops one after the other
         self.q_params = itertools.chain(self.actor_critic.q1.parameters(), self.actor_critic.q2.parameters())
             
-        self.pi_optimizer = Adam(self.actor_critic.pi.parameters(), lr=params["lr"])
+        self.pi_optimizer = Adam(self.actor_critic.policy.parameters(), lr=params["lr"])
         self.q_optimizer = Adam(self.q_params, lr=params["lr"])        
         ###############################################################
     
