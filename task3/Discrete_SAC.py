@@ -58,8 +58,8 @@ class DiscreteSAC:
         #for efficient looping, just loops one after the other
         self.q_params = itertools.chain(self.actor_critic.q1.parameters(), self.actor_critic.q2.parameters())
             
-        self.pi_optimiser = Adam(self.actor_critic.policy.parameters(), lr=params["lr"])
-        self.q_optimiser = Adam(self.q_params, lr=params["lr"])        
+        self.pi_optimizer = Adam(self.actor_critic.policy.parameters(), lr=params["lr"])
+        self.q_optimizer = Adam(self.q_params, lr=params["lr"])        
         ###############################################################
     
     #def run(self, environment, policy, buffer, batchsize):
@@ -96,6 +96,18 @@ class DiscreteSAC:
         #spinning up records dones as 1 if True and 0 if False
         
     
+    def take_optimization_step(self, optimizer, network, loss, clipping_norm=None):
+        optimizer.zero_grad()
+        loss.backward()
+        if clipping_norm is not None:
+            for net in network:
+                torch.nn.utils.clip_grad_norm(net.parameters(), clipping_norm)
+        optimizer.step()
+        
+    def update_critic_params(self, critic_loss_1, critic_loss_2):
+        pass
+        
+        
     def gradient_step(self, buffer, batchsize):
         ############################### randomly sample a batch of transitions from D ############
         states, actions, rewards, new_states, dones = buffer.sample(batchsize)
@@ -103,20 +115,20 @@ class DiscreteSAC:
         #targets = self.compute_targets(states, new_states, actions, rewards, dones)
         
         ############################## update both local Qs with gradient descent #################
-        self.q_optimiser.zero_grad()
+        self.q_optimizer.zero_grad()
 
-        q1_loss, q2_loss, qf_min = self.calc_q_loss(states, actions, rewards, new_states, dones)
+        _, _, qf_min = self.calc_q_loss(states, actions, rewards, new_states, dones)
 
         # is this how you do it?
         qf_min.backward()
-        self.q_optimiser.step()
+        self.q_optimizer.step()
         
         ############################ update the policy with gradient ascent ########################
         for p in self.q_params:
             p.requires_grad = False
 
         # Next run one gradient descent step for pi.
-        self.pi_optimiser.zero_grad()
+        self.pi_optimizer.zero_grad()
         policy_loss = self.policy_loss(states, actions, rewards, new_states, dones)
         ########## apparently this should do it for gradient ascent
         policy_loss = - policy_loss
