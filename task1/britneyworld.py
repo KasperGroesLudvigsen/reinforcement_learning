@@ -12,18 +12,19 @@ See movement mechanism specifications in report
 import numpy as np
 import random
 import math
+import torch
 
 class Environment:
     
     
     
-    def __init__(self, N, stumble_prob, obs_size=5):
+    def __init__(self, environment_params, obs_size=5):
         
-        if N < 4:
+        if environment_params['N'] < 4:
             raise Exception('N must be larger than 3')
         
-        self.map = np.zeros((N,N))
-        self.size = N
+        self.map = torch.zeros((environment_params['N'],environment_params['N']))
+        self.size = environment_params['N']
         self.obs_size = obs_size
         
         # creating borders
@@ -37,14 +38,14 @@ class Environment:
         
         self.guard_location = self.britney_start_location 
         self.britney_location = self.guard_start_location
-        self.stumple_prob = stumble_prob
-        self.car_location = np.array([N-2, N-2])
+        self.stumple_prob = environment_params['stumble_prob']
+        self.car_location = np.array([environment_params['N']-2, environment_params['N']-2])
         self.reward = None
         # our 'dictionary' where we assign a single number for each coordinate
         #self.locations = [[x,y] for x in range(N) for y in range(N)] 
-        index_states = np.arange(0, (N*N)**2)
+        index_states = np.arange(0, (environment_params['N']*environment_params['N'])**2)
         np.random.shuffle(index_states)
-        self.states = index_states.reshape(N,N,N,N)
+        self.states = index_states.reshape(environment_params['N'],environment_params['N'],environment_params['N'],environment_params['N'])
         #are training it on an environment then it should stay the same through training?
         
         # run time ###Q3: do we want this?
@@ -280,12 +281,12 @@ class Environment:
         self.guard_location = self.guard_start_location
         
 
-    def calculate_observations(self, obs_size):
+    def calculate_observations(self):
         """
         args:
             obs_size (int) : side length of the n*n partition that the agent can observe
         """
-         
+        obs_size = int(self.size/3)
         lower_bound = math.floor(obs_size / 2)
         upper_bound = lower_bound + 1 # +1 because slicing np.arrays is not inclusive
         
