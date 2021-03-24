@@ -12,6 +12,8 @@ import torch.nn as nn
 from copy import deepcopy
 import itertools
 from torch.optim import Adam
+import reinforcement_learning.task3.utils as utils
+import numpy as np
 
 class Actor_Critic(nn.Module):
     
@@ -71,30 +73,40 @@ class DiscreteSAC:
         
     def environment_step(self, environment, buffer):
         # get state/observation from environment.
-        observation = environment.get_state()
+        observation = environment.calculate_observations()
+        converted_obs = utils.convert_state(observation)
         # get action from state using policy.
-        action = self.actor_critic.policy(observation)
+        with torch.no_grad():
+            action_distribuion = self.actor_critic.policy(converted_obs)
+        action = np.max(np.array(action_distribuion))
         # get reward, next state, done from environment by taking action in the world.
-        new_obs, reward, done = environment.take_step(action)
+        _, reward, done = environment.take_action_guard(
+            environment.guard_location,
+            environment.britney_location,
+            action)
+        new_obs = environment.calculate_observations()
+        converted_new_obs = utils.convert_state(new_obs)
         # store the experience in D, experience replay buffer.
         if done:
             done_num = 1
         else:
             done_num = 0
-        buffer.append(obs, action, reward, new_obs, done_num)
+        buffer.append(converted_obs, action, reward, converted_new_obs, done_num)
         
         #spinning up records dones as 1 if True and 0 if False
         
     
     def gradient_step(self, buffer, batchsize):
         ############################### randomly sample a batch of transitions from D ############
-        states, new_states, actions, rewards, dones = buffer.sample(batchsize)
+        states, actions, rewards, new_states, dones = buffer.sample(batchsize)
         #compute the targets for Q functions
         #targets = self.compute_targets(states, new_states, actions, rewards, dones)
         
         ############################## update both local Qs with gradient descent #################
         self.q_optimiser.zero_grad()
-        _, _, qf_min = self.calc_q_loss(states, new_states, actions, rewards, dones)
+
+        q1_loss, q2_loss, qf_min = self.calc_q_loss(states, actions, rewards, new_states, dones)
+
         # is this how you do it?
         qf_min.backward()
         self.q_optimiser.step()
@@ -105,7 +117,9 @@ class DiscreteSAC:
 
         # Next run one gradient descent step for pi.
         self.pi_optimiser.zero_grad()
-        policy_loss = self.policy_loss(states, new_states, actions, rewards, dones)
+        policy_loss = self.policy_loss(states, actions, rewards, new_states, dones)
+        ########## apparently this should do it for gradient ascent
+        policy_loss = - policy_loss
         policy_loss.backward()
         self.pi_optimizer.step()
 
@@ -140,20 +154,23 @@ class DiscreteSAC:
         # Estimate target q_value
         with torch.no_grad():
             # Produce two q values
-            q_next_target = self.qnet_target(next_state_batch) # estimate via q_net
+            q_next_target = self.target_actor_critic.q1(next_state_batch) # estimate via q_net
             #take max of this? since it outputs the qvalues for all actions given the observation
-            q_next_target2 = self.qnet_target2(next_state_batch)
+            q_next_target2 = self.target_actor_critic.q1(next_state_batch)
             #take max of this?
             qf_min = torch.min(q_next_target, q_next_target2)
-    
+            
+            #the policy_net is from local ac as per the greek, 
             action_probabilities = self.actor_critic.policy(next_state_batch)#self.calc_action_prob() # TBD - it's the policy network
-            log_action_probabilities = self.calc_log_prob(action_probabilities) # tbd
+            log_action_probabilities = self.calc_log_prob(action_probabilities)
             
             # Calculate policy value
             v = action_probabilities * qf_min - self.alpha * log_action_probabilities
             v = v.sum(dim=1).unsqueeze(-1)
             
-            # Dunno why (1.0 - dones_batch) is used, but he does it in his implementation (Greek)
+            # Dunno why (1.0 - dones_batch) is used, but he does it in his implementation
+            # Answer: if next state then done, then the value of the move is = to rweard only
+
             target_q_value = reward_batch + (1.0 - dones_batch) + self.gamma * v 
         
 
@@ -161,37 +178,46 @@ class DiscreteSAC:
         # The qnets ouput a Q value for each action, so we use gather() to gather
         # the values corresponding to the action indices of the batch
         # explanation of gather() https://medium.com/analytics-vidhya/understanding-indexing-with-pytorch-gather-33717a84ebc4
-        q1 = self.qnet_local(state_batch).gather(1, action_batch.long()) 
-        q2 = self.qnet_local2(state_batch).gather(1, action_batch.long())
+        q1 = self.actor_critic.q1(state_batch).gather(1, action_batch.long()) 
+        q2 = self.actor_critic.q2(state_batch).gather(1, action_batch.long())
         
         q1_loss = F.mse_loss(q1, target_q_value)
         q2_loss = F.mse_loss(q2, target_q_value)
-        return q1_loss, q2_loss, qf_min
+        return q1_loss, q2_loss#, qf_min
         
     def calc_log_prob(self, action_probabilities):
         z = action_probabilities == 0.0
         z = z.float() * 1e-8
         return torch.log(action_probabilities + z)
     
-    def calc_action_prob(self):
-        # This is supposed to be the policy network
-        pass
+    #def calc_action_prob(self):
+     #   # This is supposed to be the policy network
+      #  pass
     
 
     
     
     def policy_loss(self, state_batch, action_batch, reward_batch, next_state_batch, dones_batch):
         """Calculates the loss for the actor. This loss includes the additional entropy term"""
-        #action, (action_probabilities, log_action_probabilities), _ = self.produce_action_and_action_info(state_batch)
-        #qf1_pi = self.critic_local(state_batch)
-        #qf2_pi = self.critic_local_2(state_batch)
-        _, _, min_qf_pi = self.calc_q_loss(state_batch, action_batch, reward_batch, next_state_batch, dones_batch)
         
-        action_probabilities = self.calc_action_prob()
+        action_probabilities = self.actor_critic.policy(state_batch)
         log_action_probabilities = self.calc_log_prob(action_probabilities)
         
         
-        inside_term = self.alpha * log_action_probabilities - min_qf_pi
+        q1 = self.actor_critic.q1(state_batch).gather(1, action_batch.long()) 
+        q2 = self.actor_critic.q2(state_batch).gather(1, action_batch.long())
+        
+        min_q = torch.min(q1,q2)
+        #action, (action_probabilities, log_action_probabilities), _ = self.produce_action_and_action_info(state_batch)
+        #qf1_pi = self.critic_local(state_batch)
+        #qf2_pi = self.critic_local_2(state_batch)
+        #_, _, min_qf_pi = self.calc_q_loss(state_batch, action_batch, reward_batch, next_state_batch, dones_batch)
+        
+       # action_probabilities = self.calc_action_prob()
+        #log_action_probabilities = self.calc_log_prob(action_probabilities)
+        
+        
+        inside_term = self.alpha * log_action_probabilities - min_q
         policy_loss = (action_probabilities * inside_term).sum(dim=1).mean()
         log_action_probabilities = torch.sum(log_action_probabilities * action_probabilities, dim=1)
         return policy_loss, log_action_probabilities

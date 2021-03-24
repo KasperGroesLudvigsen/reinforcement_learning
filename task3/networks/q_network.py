@@ -7,8 +7,8 @@ Created on Tue Mar 16 10:36:26 2021
 import os
 import torch
 import torch.nn as nn
-import utils.utils as utils
-
+#import utils.utils as utils
+import reinforcement_learning.task3.utils as utils
 
 class QNet(nn.Module):
     # adapted from:
