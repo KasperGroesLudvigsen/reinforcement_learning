@@ -268,7 +268,7 @@ class Environment:
         #self.car_location = np.array([self.size-3,self.size-3])
         
         # Calculate observations
-        observations = self.calculate_observations(self.obs_size)
+        observations = self.calculate_observations()#self.obs_size)
         
         return observations
     

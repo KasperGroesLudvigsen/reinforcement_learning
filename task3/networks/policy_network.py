@@ -11,8 +11,8 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions.normal import Normal
 import numpy as np
-import utils.utils as utils
-
+#import utils.utils as utils
+import reinforcement_learning.task3.utils as utils
 class PiNet(nn.Module):
     """
         This class is the actor network. It is the parametrised policy.
