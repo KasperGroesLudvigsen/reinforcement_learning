@@ -73,7 +73,7 @@ class DiscreteSAC:
         # get state/observation from environment.
         observation = environment.get_state()
         # get action from state using policy.
-        action = self.actor_critic.pi(observation)
+        action = self.actor_critic.policy(observation)
         # get reward, next state, done from environment by taking action in the world.
         new_obs, reward, done = environment.take_step(action)
         # store the experience in D, experience replay buffer.
@@ -146,7 +146,7 @@ class DiscreteSAC:
             #take max of this?
             qf_min = torch.min(q_next_target, q_next_target2)
     
-            action_probabilities = self.actor_critic.pi(next_state_batch)#self.calc_action_prob() # TBD - it's the policy network
+            action_probabilities = self.actor_critic.policy(next_state_batch)#self.calc_action_prob() # TBD - it's the policy network
             log_action_probabilities = self.calc_log_prob(action_probabilities) # tbd
             
             # Calculate policy value

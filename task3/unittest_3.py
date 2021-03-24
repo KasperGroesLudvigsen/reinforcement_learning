@@ -9,7 +9,7 @@ import torch
 #import networks.q_network as qnet
 import torch.nn.functional as F
 #import networks.policy_network as pi_net
-import task3.Discrete_SAC as sac
+import reinforcement_learning.task3.Discrete_SAC as sac
 import torch.nn as nn
 from copy import deepcopy
 import itertools
@@ -83,6 +83,7 @@ def unittest_environment_step():
     len(unittest_buffer.reward_memory)
     unittest_DSAC.environment_step(unittest_environment, unittest_buffer)
     len(unittest_buffer.reward_memory)
+
     
     
     

@@ -11,7 +11,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.distributions.normal import Normal
 import numpy as np
-import reinforcement_learning.task3.utils as utils
+import utils.utils as utils
 
 class PiNet(nn.Module):
     """

@@ -6,7 +6,7 @@ Created on Mon Mar 15 18:50:50 2021
 """
 import task3.buffer as buff
 import numpy as np 
-import task3.utils as utils
+import utils.utils as utils
 import torch 
 
 def unittest_buffer():
