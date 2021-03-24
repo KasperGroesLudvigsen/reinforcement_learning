@@ -59,7 +59,14 @@ class DiscreteSAC:
         self.q_params = itertools.chain(self.actor_critic.q1.parameters(), self.actor_critic.q2.parameters())
             
         self.pi_optimizer = Adam(self.actor_critic.policy.parameters(), lr=params["lr"])
-        self.q_optimizer = Adam(self.q_params, lr=params["lr"])        
+        self.q_optimizer = Adam(self.q_params, lr=params["lr"]) 
+        
+        # Making new optimizers for the q net because I dont think we need to 
+        # update a different set of parameters for each network, and I don't 
+        # see how we can do that if all the params are stored in one object
+        self.q1_optimizer = Adam(self.actor_critic.q1.parameters(), lr=params["lr"])
+        self.q2_optimizer = Adam(self.actor_critic.q2.parameters(), lr=params["lr"])
+        
         ###############################################################
     
     #def run(self, environment, policy, buffer, batchsize):
@@ -104,23 +111,40 @@ class DiscreteSAC:
                 torch.nn.utils.clip_grad_norm(net.parameters(), clipping_norm)
         optimizer.step()
         
-    def update_critic_params(self, critic_loss_1, critic_loss_2):
-        pass
+    def soft_update_of_target_net(self, target_model, local_model, tau):
+        for target_param, local_param in zip(target_model.parameters(), 
+                                             local_model.parameters()):
+            target_param.data.copy_(tau*local_param.data + (1.0-tau)*target_param.data)
         
-        
-    def gradient_step(self, buffer, batchsize):
+    def gradient_step(self, buffer, batchsize, tau):
+        """
+        Args:
+            tau (float) : used to regularize the soft update of the target nets
+        """
         ############################### randomly sample a batch of transitions from D ############
         states, actions, rewards, new_states, dones = buffer.sample(batchsize)
         #compute the targets for Q functions
         #targets = self.compute_targets(states, new_states, actions, rewards, dones)
         
         ############################## update both local Qs with gradient descent #################
-        self.q_optimizer.zero_grad()
-
-        _, _, qf_min = self.calc_q_loss(states, actions, rewards, new_states, dones)
+        q1_loss, q2_loss, q_min_loss = self.calc_q_loss(states, actions, rewards, new_states, dones)
+        
+        self.take_optimization_step(self.q1_optimizer, self.actor_critic.q1, q1_loss)
+        self.take_optimization_step(self.q2_optimizer, self.actor_critic.q2, q2_loss)
+        self.soft_update_of_target_net(self.target_actor_critic.q1, self.actor_critic.q1, tau)
+        self.soft_update_of_target_net(self.target_actor_critic.q2, self.actor_critic.q2, tau)
+        
+        
+        
+        
+        
+        
+        
+        
+        
 
         # is this how you do it?
-        qf_min.backward()
+        q_min_loss.backward()
         self.q_optimizer.step()
         
         ############################ update the policy with gradient ascent ########################
