@@ -56,8 +56,8 @@ class DiscreteSAC:
         #for efficient looping, just loops one after the other
         self.q_params = itertools.chain(self.actor_critic.q1.parameters(), self.actor_critic.q2.parameters())
             
-        self.pi_optimizer = Adam(self.actor_critic.policy.parameters(), lr=params["lr"])
-        self.q_optimizer = Adam(self.q_params, lr=params["lr"])        
+        self.pi_optimiser = Adam(self.actor_critic.policy.parameters(), lr=params["lr"])
+        self.q_optimiser = Adam(self.q_params, lr=params["lr"])        
         ###############################################################
     
     #def run(self, environment, policy, buffer, batchsize):
@@ -94,7 +94,7 @@ class DiscreteSAC:
         
         ############################## update both local Qs with gradient descent #################
         self.q_optimiser.zero_grad()
-        q1_loss, q2_loss, qf_min = self.calc_q_loss(states, new_states, actions, rewards, dones)
+        _, _, qf_min = self.calc_q_loss(states, new_states, actions, rewards, dones)
         # is this how you do it?
         qf_min.backward()
         self.q_optimiser.step()
@@ -116,7 +116,7 @@ class DiscreteSAC:
         ######################### update target networks using polyak averaging ###################
         self.polyak_target_update(self.actor_critic, self.target_actor_critic)
         
-        
+    
         
         #with torch.no_grad():
          #   for p, p_targ in zip(self.actor_critic.parameters(), self.target_actor_critic.parameters()):
@@ -153,7 +153,7 @@ class DiscreteSAC:
             v = action_probabilities * qf_min - self.alpha * log_action_probabilities
             v = v.sum(dim=1).unsqueeze(-1)
             
-            # Dunno why (1.0 - dones_batch) is used, but he does it in his implementation
+            # Dunno why (1.0 - dones_batch) is used, but he does it in his implementation (Greek)
             target_q_value = reward_batch + (1.0 - dones_batch) + self.gamma * v 
         
 
