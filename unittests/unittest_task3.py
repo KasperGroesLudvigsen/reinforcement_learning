@@ -4,10 +4,107 @@ Created on Mon Mar 15 18:50:50 2021
 
 @author: groes
 """
-import task3.buffer as buff
+import reinforcement_learning.task3.buffer as buff
 import numpy as np 
-import utils.utils as utils
+import reinforcement_learning.task3.utils as utils
+
 import torch 
+#import networks.q_network as qnet
+import torch.nn.functional as F
+#import networks.policy_network as pi_net
+import reinforcement_learning.task3.Discrete_SAC as sac
+import torch.nn as nn
+from copy import deepcopy
+import itertools
+from torch.optim import Adam
+import reinforcement_learning.task1.britneyworld as bw
+import reinforcement_learning.task3.buffer as buf
+
+####################### hyperparams #########################
+
+unittest_environment_params = {
+    'N' : 10,
+    'stumble_prob' : 0.3
+    }
+
+unittest_buffer_params = {
+    'obs_dims': (25,4),
+    'num_actions': 9
+    }
+
+unittest_ac_params = {
+    'num_obs' : 13,
+    'num_actions' : 9,
+    'hidden_sizes' : [100,100],
+    'activation_func': nn.ReLU
+    }
+
+unittest_params = {
+    'lr': 0.001,
+    'alpha' : 0.1,
+    'gamma': 0.9,
+    'batch_size': 32
+    }
+
+################### classes ##################################
+
+unittest_ac = sac.Actor_Critic(
+    unittest_ac_params['num_obs'],
+    unittest_ac_params['num_actions'], 
+    unittest_ac_params['hidden_sizes'],
+    unittest_ac_params['activation_func']
+    )
+
+unittest_buffer = buf.ReplayBuffer(
+    unittest_buffer_params['obs_dims'],
+    unittest_buffer_params['num_actions']
+    )
+
+unittest_DSAC = sac.DiscreteSAC(unittest_ac_params, unittest_params)
+
+unittest_environment = bw.Environment(unittest_environment_params)
+#################### unittests ###############################
+
+def unittest_convert_obs():
+    observation = unittest_environment.calculate_observations()
+    print(observation['surroundings'])
+    print(observation['relative_coordinates_car'])
+    print(observation['relative_coordinates_britney'])
+    converted_obs = utils.convert_state(observation)
+    converted_obs = converted_obs.squeeze()
+    print(converted_obs)
+    some_zeros = torch.zeros(13)
+    print(some_zeros[0])
+
+unittest_convert_obs()
+
+
+def unittest_actor_critic():
+    observation = unittest_environment.calculate_observations()
+    converted_obs = utils.convert_state(observation)
+    converted_obs = converted_obs.squeeze()
+    
+    #converted_obs = torch.ones(13, dtype=torch.float32)
+    test = torch.zeros(13)
+    output = unittest_ac.policy(converted_obs)
+    assert len(output) == unittest_ac_params['num_actions']
+    
+    output_q1 = unittest_ac.q1(converted_obs)
+    assert len(output_q1) == unittest_ac_params['num_actions']
+    
+    output_q2 = unittest_ac.q2(converted_obs)
+    assert len(output_q2) == unittest_ac_params['num_actions']
+   
+
+unittest_actor_critic()
+    
+    
+def unittest_environment_step():
+    unittest_environment.reset()
+    len(unittest_buffer.reward_memory)
+    unittest_DSAC.environment_step(unittest_environment, unittest_buffer)
+    len(unittest_buffer.reward_memory)
+ 
 
 def unittest_buffer():
     size = 100
