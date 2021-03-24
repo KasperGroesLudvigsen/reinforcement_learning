@@ -28,7 +28,7 @@ unittest_environment_params = {
     }
 
 unittest_buffer_params = {
-    'obs_dims': (25,4),
+    'obs_dims': (1,13),
     'num_actions': 9
     }
 
@@ -72,7 +72,7 @@ def unittest_convert_obs():
     print(observation['relative_coordinates_britney'])
     converted_obs = utils.convert_state(observation)
     converted_obs = converted_obs.squeeze()
-    print(converted_obs)
+    print(converted_obs.shape)
     some_zeros = torch.zeros(13)
     print(some_zeros[0])
 
@@ -80,15 +80,14 @@ unittest_convert_obs()
 
 
 def unittest_actor_critic():
+    unittest_environment.reset()
     observation = unittest_environment.calculate_observations()
     converted_obs = utils.convert_state(observation)
     converted_obs = converted_obs.squeeze()
-    
-    #converted_obs = torch.ones(13, dtype=torch.float32)
-    test = torch.zeros(13)
-    output = unittest_ac.policy(converted_obs)
+    with torch.no_grad():
+        output = unittest_ac.policy(converted_obs)
     assert len(output) == unittest_ac_params['num_actions']
-    
+    print(np.array(output))
     output_q1 = unittest_ac.q1(converted_obs)
     assert len(output_q1) == unittest_ac_params['num_actions']
     
@@ -101,10 +100,12 @@ unittest_actor_critic()
     
 def unittest_environment_step():
     unittest_environment.reset()
-    len(unittest_buffer.reward_memory)
+    #print(len(unittest_buffer.reward_memory))
     unittest_DSAC.environment_step(unittest_environment, unittest_buffer)
-    len(unittest_buffer.reward_memory)
- 
+    #len(unittest_buffer.reward_memory)
+    print(unittest_buffer.reward_memory[0])
+unittest_environment_step()
+
 
 def unittest_buffer():
     size = 100

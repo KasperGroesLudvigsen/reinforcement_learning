@@ -5,6 +5,7 @@ Created on Mon Mar 15 16:01:46 2021
 @author: groes
 """
 import numpy as np
+import torch
 
 class ReplayBuffer:
     # Adapted from: 
@@ -45,13 +46,13 @@ class ReplayBuffer:
         n_stored_memories = min(self.memory_counter, self.memory_size)
         batch_idx = np.random.choice(n_stored_memories, batch_size, replace=False)
         
-        states = self.state_memory[batch_idx]
-        new_states = self.new_state_memory[batch_idx]
-        actions = self.action_memory[batch_idx]
-        rewards = self.reward_memory[batch_idx]
-        dones = self.reward_memory[batch_idx]
+        states = torch.as_tensor(self.state_memory[batch_idx], dtype=torch.float32)
+        new_states = torch.as_tensor(self.new_state_memory[batch_idx], dtype=torch.float32)
+        actions = torch.as_tensor(self.action_memory[batch_idx], dtype=torch.float32)
+        rewards = torch.as_tensor(self.reward_memory[batch_idx], dtype=torch.float32)
+        dones = torch.as_tensor(self.reward_memory[batch_idx], dtype=torch.float32)
         
         return states, new_states, actions, rewards, dones
         
         
-        
+   
