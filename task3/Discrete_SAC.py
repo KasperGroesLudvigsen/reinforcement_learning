@@ -20,7 +20,7 @@ class Actor_Critic(nn.Module):
     def __init__(self, num_obs, num_actions, hidden_sizes, activation_func):
         super().__init__()
         
-        
+       
         self.policy = pi_net.PiNet(num_obs, num_actions, hidden_sizes, activation_func, "popo")
         self.q1 = qnet.QNet(num_obs, num_actions, hidden_sizes, activation_func, "Q1")
         self.q2 = qnet.QNet(num_obs, num_actions, hidden_sizes, activation_func, "Q2")
@@ -37,10 +37,13 @@ class DiscreteSAC:
     def __init__(self, ac_params, params):
 
         
+        # Hyperparameters
         self.alpha = params["alpha"]
         self.gamma = params["gamma"]
+        self.polyak = params["polyak"] # aka tau; used to regularize the soft update of the target nets
+        self.clipping_norm = params["clipping_norm"]
+        self.tune_temperature = params["tune_temperature"] # bool 
         
-
         
         ####################### ammended with spinning up ################
         self.actor_critic = Actor_Critic(
@@ -116,10 +119,10 @@ class DiscreteSAC:
                                              local_model.parameters()):
             target_param.data.copy_(tau*local_param.data + (1.0-tau)*target_param.data)
         
-    def gradient_step(self, buffer, batchsize, tau):
+    def gradient_step(self, buffer, batchsize):
         """
         Args:
-            tau (float) : used to regularize the soft update of the target nets
+            polyak (float) : 
         """
         ############################### randomly sample a batch of transitions from D ############
         states, actions, rewards, new_states, dones = buffer.sample(batchsize)
@@ -129,19 +132,50 @@ class DiscreteSAC:
         ############################## update both local Qs with gradient descent #################
         q1_loss, q2_loss, q_min_loss = self.calc_q_loss(states, actions, rewards, new_states, dones)
         
-        self.take_optimization_step(self.q1_optimizer, self.actor_critic.q1, q1_loss)
-        self.take_optimization_step(self.q2_optimizer, self.actor_critic.q2, q2_loss)
-        self.soft_update_of_target_net(self.target_actor_critic.q1, self.actor_critic.q1, tau)
-        self.soft_update_of_target_net(self.target_actor_critic.q2, self.actor_critic.q2, tau)
+        # Updating q net
+        self.take_optimization_step(
+            self.q1_optimizer, self.actor_critic.q1, q1_loss, self.clipping_norm)
         
+        self.take_optimization_step(
+            self.q2_optimizer, self.actor_critic.q2, q2_loss, self.clipping_norm)
         
+        # Soft updating target q nets
+        # soft_update_of_target_net and polyak_update seem to do the same thing
+        # but we need to figure out if the update should be made to all networks
+        # or only the target
+        # In the greek code, the update is only made to q1 and q2 target nets 
+        # like I do with soft_update_of_target_net
+        self.soft_update_of_target_net(
+            self.target_actor_critic.q1, self.actor_critic.q1, self.tau
+            )
         
+        self.soft_update_of_target_net(
+            self.target_actor_critic.q2, self.actor_critic.q2, self.tau
+            )
         
+        # Not sure we're supposed to soft update everything - I think it's only the target nets
+        # self.polyak_target_update(self.actor_critic, self.target_actor_critic)
         
+        # Updating policy
+        policy_loss, _ = self.policy_loss(
+            states, actions, rewards, new_states, dones
+            )
         
+        self.take_optimization_step(
+            self.pi_optimizer, self.actor_critic.policy, policy_loss, self.clipping_norm
+            )
         
-        
-        
+        # This needs to be amended if we wanna do tuning of the temperature parameter
+        # see update_actor_parameters() and __init__ method from
+        #  https://github.com/p-christ/Deep-Reinforcement-Learning-Algorithms-with-PyTorch/blob/6297608b8524774c847ad5cad87e14b80abf69ce/agents/actor_critic_agents/SAC.py#L193 
+        if self.tune_temperature:
+            alpha_loss = self.calculate_entropy_tuning_loss()
+            self.take_optimisation_step(self.alpha_optim, None, alpha_loss, None)
+            self.alpha = self.log_alpha.exp()
+            
+        # I don't think we need what's below this line anymore
+        ########################################################################
+
 
         # is this how you do it?
         q_min_loss.backward()
@@ -263,7 +297,9 @@ class DiscreteSAC:
     
     
     
-    
+    def calculate_entropy_tuning_loss(self, log_pi):
+        # TBD
+        pass
     
     
     
