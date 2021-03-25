@@ -41,6 +41,7 @@ class DiscreteSAC:
         self.alpha = params["alpha"]
         self.gamma = params["gamma"]
         self.polyak = params["polyak"] # aka tau; used to regularize the soft update of the target nets
+        
         self.clipping_norm = params["clipping_norm"]
         self.tune_temperature = params["tune_temperature"] # bool 
         
@@ -57,6 +58,10 @@ class DiscreteSAC:
         #a shallow/normal copy copies and object then inserts references into the copy of
         #the objects in the origional
         self.target_actor_critic = deepcopy(self.actor_critic)
+        
+        # Freeze target networks with respect to optimizers (only update via polyak averaging)
+        for p in target_actor_critic.parameters():
+            p.requires_grad = False
         
         #for efficient looping, just loops one after the other
         self.q_params = itertools.chain(self.actor_critic.q1.parameters(), self.actor_critic.q2.parameters())
@@ -120,19 +125,17 @@ class DiscreteSAC:
             target_param.data.copy_(tau*local_param.data + (1.0-tau)*target_param.data)
         
     def gradient_step(self, buffer, batchsize):
-        """
-        Args:
-            polyak (float) : 
-        """
+
+
         ############################### randomly sample a batch of transitions from D ############
         states, actions, rewards, new_states, dones = buffer.sample(batchsize)
         #compute the targets for Q functions
         #targets = self.compute_targets(states, new_states, actions, rewards, dones)
         
         ############################## update both local Qs with gradient descent #################
-        q1_loss, q2_loss, q_min_loss = self.calc_q_loss(states, actions, rewards, new_states, dones)
+        q1_loss, q2_loss, _ = self.calc_q_loss(states, actions, rewards, new_states, dones)
         
-        # Updating q net
+        # Updating q nets
         self.take_optimization_step(
             self.q1_optimizer, self.actor_critic.q1, q1_loss, self.clipping_norm)
         
@@ -146,11 +149,11 @@ class DiscreteSAC:
         # In the greek code, the update is only made to q1 and q2 target nets 
         # like I do with soft_update_of_target_net
         self.soft_update_of_target_net(
-            self.target_actor_critic.q1, self.actor_critic.q1, self.tau
+            self.target_actor_critic.q1, self.actor_critic.q1, self.polyak
             )
         
         self.soft_update_of_target_net(
-            self.target_actor_critic.q2, self.actor_critic.q2, self.tau
+            self.target_actor_critic.q2, self.actor_critic.q2, self.polyak
             )
         
         # Not sure we're supposed to soft update everything - I think it's only the target nets
@@ -230,7 +233,7 @@ class DiscreteSAC:
             #take max of this?
             qf_min = torch.min(q_next_target, q_next_target2)
             
-            #the policy_net is from local ac as per the greek, 
+            # the policy_net is from local ac as per the greek, 
             action_probabilities = self.actor_critic.policy(next_state_batch)#self.calc_action_prob() # TBD - it's the policy network
             log_action_probabilities = self.calc_log_prob(action_probabilities)
             
@@ -238,21 +241,21 @@ class DiscreteSAC:
             v = action_probabilities * qf_min - self.alpha * log_action_probabilities
             v = v.sum(dim=1).unsqueeze(-1)
             
-            # Dunno why (1.0 - dones_batch) is used, but he does it in his implementation
-            # Answer: if next state then done, then the value of the move is = to rweard only
-
+            # Subtracting dones from 1 so that if next state is done, then the 
+            # value of the move is = to rweard only
             target_q_value = reward_batch + (1.0 - dones_batch) + self.gamma * v 
         
 
         # Estimate q values with net and gather values
         # The qnets ouput a Q value for each action, so we use gather() to gather
-        # the values corresponding to the action indices of the batch
-        # explanation of gather() https://medium.com/analytics-vidhya/understanding-indexing-with-pytorch-gather-33717a84ebc4
+        # the values corresponding to the action indices of the batch.
+        # Explanation of gather() https://medium.com/analytics-vidhya/understanding-indexing-with-pytorch-gather-33717a84ebc4
         q1 = self.actor_critic.q1(state_batch).gather(1, action_batch.long()) 
         q2 = self.actor_critic.q2(state_batch).gather(1, action_batch.long())
         
         q1_loss = F.mse_loss(q1, target_q_value)
         q2_loss = F.mse_loss(q2, target_q_value)
+        
         return q1_loss, q2_loss#, qf_min
         
     def calc_log_prob(self, action_probabilities):
