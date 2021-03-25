@@ -233,15 +233,21 @@ class DiscreteSAC:
             #the policy_net is from local ac as per the greek, 
             action_probabilities = self.actor_critic.policy(next_state_batch)#self.calc_action_prob() # TBD - it's the policy network
             log_action_probabilities = self.calc_log_prob(action_probabilities)
-            
+            #print("action prob shape: {}".format(log_action_probabilities.shape))
             # Calculate policy value
             v = action_probabilities * qf_min - self.alpha * log_action_probabilities
+            #print("v shape before squeeze: {}".format(v.shape))
             v = v.sum(dim=1).unsqueeze(-1)
-            
+            #print("v shape after squeeze: {}".format(v.shape))
             # Dunno why (1.0 - dones_batch) is used, but he does it in his implementation
             # Answer: if next state then done, then the value of the move is = to rweard only
-
-            target_q_value = reward_batch + (1.0 - dones_batch) + self.gamma * v 
+            #print("reward_batch shape: {}".format(reward_batch.shape))
+            reward_batch = reward_batch.unsqueeze(-1)
+            #print("reward_batch shape after unsqueeze: {}".format(reward_batch.shape))
+            #print("dones batch shape: {}".format(dones_batch.shape))
+            mask = (1.0 - dones_batch).unsqueeze(-1)
+            #print("mask shape: {}".format(mask.shape))
+            target_q_value = reward_batch + mask * self.gamma * v 
         
 
         # Estimate q values with net and gather values
@@ -251,6 +257,8 @@ class DiscreteSAC:
         q1 = self.actor_critic.q1(state_batch).gather(1, action_batch.long()) 
         q2 = self.actor_critic.q2(state_batch).gather(1, action_batch.long())
         
+        print("q1 shape: {}".format(q1.shape))
+        print("target q1 shape {}:".format(target_q_value.shape))
         q1_loss = F.mse_loss(q1, target_q_value)
         q2_loss = F.mse_loss(q2, target_q_value)
         return q1_loss, q2_loss#, qf_min
