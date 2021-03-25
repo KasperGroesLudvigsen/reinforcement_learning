@@ -12,7 +12,7 @@ import torch.nn as nn
 from copy import deepcopy
 import itertools
 from torch.optim import Adam
-import reinforcement_learning.task3.utils as utils
+import reinforcement_learning.utils.utils as utils
 import numpy as np
 
 class Actor_Critic(nn.Module):
@@ -267,15 +267,15 @@ class DiscreteSAC:
 
     
     
-    def policy_loss(self, state_batch, action_batch, reward_batch, next_state_batch, dones_batch):
+    def policy_loss(self, state_batch):
         """Calculates the loss for the actor. This loss includes the additional entropy term"""
         
         action_probabilities = self.actor_critic.policy(state_batch)
         log_action_probabilities = self.calc_log_prob(action_probabilities)
         
         
-        q1 = self.actor_critic.q1(state_batch).gather(1, action_batch.long()) 
-        q2 = self.actor_critic.q2(state_batch).gather(1, action_batch.long())
+        q1 = self.actor_critic.q1(state_batch)
+        q2 = self.actor_critic.q2(state_batch)
         
         min_q = torch.min(q1,q2)
         #action, (action_probabilities, log_action_probabilities), _ = self.produce_action_and_action_info(state_batch)
@@ -289,8 +289,8 @@ class DiscreteSAC:
         
         inside_term = self.alpha * log_action_probabilities - min_q
         policy_loss = (action_probabilities * inside_term).sum(dim=1).mean()
-        log_action_probabilities = torch.sum(log_action_probabilities * action_probabilities, dim=1)
-        return policy_loss, log_action_probabilities
+        #log_action_probabilities = torch.sum(log_action_probabilities * action_probabilities, dim=1)
+        return policy_loss#, log_action_probabilities
     
     
     
