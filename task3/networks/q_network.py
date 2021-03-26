@@ -8,7 +8,11 @@ import os
 import torch
 import torch.nn as nn
 #import utils.utils as utils
+
 import utils.utils as utils
+
+#import reinforcement_learning.utils.utils as utils
+
 
 class QNet(nn.Module):
     # adapted from:

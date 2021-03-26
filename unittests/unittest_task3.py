@@ -5,7 +5,11 @@ Created on Mon Mar 15 18:50:50 2021
 @author: groes
 """
 import numpy as np 
+
 import utils.utils as utils
+
+#import reinforcement_learning.utils.utils as utils
+
 
 import torch 
 #import networks.q_network as qnet
@@ -213,7 +217,9 @@ def unittest_calculate_policy_loss():
     
     states, new_states, actions, rewards, dones = hughs_unittest_buffer.sample(30)
     
+
     policy_loss = unittest_DSAC.calc_policy_loss(states)
+
     
     print(policy_loss)
     
@@ -251,6 +257,7 @@ unittest_calculate_q_loss()
     
 def unittest_take_optimization_step():
     pass
+
 
     
     
