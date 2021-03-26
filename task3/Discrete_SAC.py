@@ -85,10 +85,11 @@ class DiscreteSAC:
         # get state/observation from environment.
         observation = environment.calculate_observations()
         converted_obs = utils.convert_state(observation)
+        
         # get action from state using policy.
         with torch.no_grad():
             action_distribuion = self.actor_critic.policy(converted_obs)
-        action = np.max(np.array(action_distribuion))
+        action = np.max(np.array(action_distribuion.squeeze()))
         # get reward, next state, done from environment by taking action in the world.
         _, reward, done = environment.take_action_guard(
             environment.guard_location,
@@ -101,7 +102,7 @@ class DiscreteSAC:
             done_num = 1
         else:
             done_num = 0
-        buffer.append(converted_obs, action, reward, converted_new_obs, done_num)
+        buffer.append(converted_obs, np.array(action_distribuion.squeeze()), reward, converted_new_obs, done_num)
         
         #spinning up records dones as 1 if True and 0 if False
         
@@ -223,24 +224,19 @@ class DiscreteSAC:
         
         # Estimate target q_value
         with torch.no_grad():
-            # Produce two q values
-            q_next_target = self.target_actor_critic.q1(next_state_batch) # estimate via q_net
-            #take max of this? since it outputs the qvalues for all actions given the observation
+            q_next_target = self.target_actor_critic.q1(next_state_batch) 
             q_next_target2 = self.target_actor_critic.q1(next_state_batch)
-            #take max of this?
             qf_min = torch.min(q_next_target, q_next_target2)
             
             #the policy_net is from local ac as per the greek, 
-            action_probabilities = self.actor_critic.policy(next_state_batch)#self.calc_action_prob() # TBD - it's the policy network
+            action_probabilities = self.actor_critic.policy(next_state_batch)
             log_action_probabilities = self.calc_log_prob(action_probabilities)
             #print("action prob shape: {}".format(log_action_probabilities.shape))
             # Calculate policy value
-            v = action_probabilities * qf_min - self.alpha * log_action_probabilities
+            v = action_probabilities * (qf_min - self.alpha * log_action_probabilities)
             #print("v shape before squeeze: {}".format(v.shape))
             v = v.sum(dim=1).unsqueeze(-1)
             #print("v shape after squeeze: {}".format(v.shape))
-            # Dunno why (1.0 - dones_batch) is used, but he does it in his implementation
-            # Answer: if next state then done, then the value of the move is = to rweard only
             #print("reward_batch shape: {}".format(reward_batch.shape))
             reward_batch = reward_batch.unsqueeze(-1)
             #print("reward_batch shape after unsqueeze: {}".format(reward_batch.shape))
@@ -257,24 +253,19 @@ class DiscreteSAC:
         q1 = self.actor_critic.q1(state_batch).gather(1, action_batch.long()) 
         q2 = self.actor_critic.q2(state_batch).gather(1, action_batch.long())
         
-        print("q1 shape: {}".format(q1.shape))
-        print("target q1 shape {}:".format(target_q_value.shape))
-        q1_loss = F.mse_loss(q1, target_q_value)
-        q2_loss = F.mse_loss(q2, target_q_value)
-        return q1_loss, q2_loss#, qf_min
+        #print("q1 shape: {}".format(q1.shape))
+        #print("target q1 shape {}:".format(target_q_value.shape))
+        q1_loss = F.mse_loss(q1[:,0], target_q_value.squeeze())
+        q2_loss = F.mse_loss(q2[:,0], target_q_value.squeeze())
+        #q1_loss = F.mse_loss(q1, target_q_value)
+        #q2_loss = F.mse_loss(q2, target_q_value)
+        return q1_loss, q2_loss
         
     def calc_log_prob(self, action_probabilities):
         z = action_probabilities == 0.0
         z = z.float() * 1e-8
         return torch.log(action_probabilities + z)
-    
-    #def calc_action_prob(self):
-     #   # This is supposed to be the policy network
-      #  pass
-    
-
-    
-    
+            
     def policy_loss(self, state_batch):
         """Calculates the loss for the actor. This loss includes the additional entropy term"""
         
@@ -286,23 +277,9 @@ class DiscreteSAC:
         q2 = self.actor_critic.q2(state_batch)
         
         min_q = torch.min(q1,q2)
-        #action, (action_probabilities, log_action_probabilities), _ = self.produce_action_and_action_info(state_batch)
-        #qf1_pi = self.critic_local(state_batch)
-        #qf2_pi = self.critic_local_2(state_batch)
-        #_, _, min_qf_pi = self.calc_q_loss(state_batch, action_batch, reward_batch, next_state_batch, dones_batch)
-        
-       # action_probabilities = self.calc_action_prob()
-        #log_action_probabilities = self.calc_log_prob(action_probabilities)
-        
-        
         inside_term = self.alpha * log_action_probabilities - min_q
         policy_loss = (action_probabilities * inside_term).sum(dim=1).mean()
-        #log_action_probabilities = torch.sum(log_action_probabilities * action_probabilities, dim=1)
-        return policy_loss#, log_action_probabilities
-    
-    
-    
-    
+        return policy_loss
     
     
     def calculate_entropy_tuning_loss(self, log_pi):

@@ -90,13 +90,20 @@ def unittest_actor_critic():
     with torch.no_grad():
         output = unittest_ac.policy(converted_obs)
     assert len(output) == unittest_ac_params['num_actions']
+    action = np.max(np.array(output))
+    print(action)
     print(np.array(output))
     output_q1 = unittest_ac.q1(converted_obs)
     assert len(output_q1) == unittest_ac_params['num_actions']
-    
+    #print(output_q1)
     output_q2 = unittest_ac.q2(converted_obs)
     assert len(output_q2) == unittest_ac_params['num_actions']
-   
+    #print(output_q2)
+    
+    _, reward, done = unittest_environment.take_action_guard(
+            unittest_environment.guard_location,
+            unittest_environment.britney_location,
+            action)
 
 unittest_actor_critic()
     
@@ -146,25 +153,28 @@ def hughs_much_better_unittest_buffer():
     hughs_unittest_buffer = buf.ReplayBuffer(
         unittest_buffer_params['obs_dims'],
         unittest_buffer_params['num_actions'],
-        memory_size= 51
+        memory_size= 31
         )
     
     for _ in range(50):
         unittest_DSAC.environment_step(unittest_environment, hughs_unittest_buffer)
     
-    print(hughs_unittest_buffer.memory_counter)
     states, new_states, actions, rewards, dones = hughs_unittest_buffer.sample(30)
     assert len(states) == 30
     assert len(new_states) == 30
     assert len(actions) == 30
     assert len(rewards) == 30
     assert len(dones) == 30
-    #print(states.squeeze().shape)
-    #print(new_states.shape)
-    print(actions.shape)
-    #print(rewards.shape)
-    #print(dones.shape)
     
+    q1 = unittest_DSAC.actor_critic.q1(states.squeeze()) 
+    #print("q1 before gathering{}:".format(q1))
+    q1 = q1.gather(1, actions.long())
+    print("q1 after gathering{}:".format(q1[:,0]))
+    #print(states.squeeze())
+    #print(new_states.shape)
+    #print(actions)
+    #print(actions)
+    #print(dones)
 hughs_much_better_unittest_buffer()
     
         

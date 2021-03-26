@@ -22,10 +22,10 @@ class ReplayBuffer:
         self.state_memory = np.zeros((self.memory_size, *input_shape))
         # Store states that occur after actions
         self.new_state_memory = np.zeros((self.memory_size, *input_shape))
-        self.action_memory = np.zeros((self.memory_size, num_actions), dtype=np.int8)
+        self.action_memory = np.zeros((self.memory_size, num_actions), dtype=np.float32)
         self.reward_memory = np.zeros((self.memory_size))
         # Store whether the state was terminal
-        self.terminal_memory = np.zeros(self.memory_size, dtype=np.bool)
+        self.terminal_memory = np.zeros(self.memory_size, dtype=np.float32)
 
     def __len__(self):
         return len(self.reward_memory)
