@@ -4,21 +4,26 @@ Created on Mon Mar 15 18:50:50 2021
 
 @author: groes
 """
-import reinforcement_learning.task3.buffer as buff
 import numpy as np 
-import reinforcement_learning.utils.utils as utils
+
+import utils.utils as utils
+
+#import reinforcement_learning.utils.utils as utils
+
 
 import torch 
 #import networks.q_network as qnet
 import torch.nn.functional as F
 #import networks.policy_network as pi_net
-import reinforcement_learning.task3.Discrete_SAC as sac
+import task3.Discrete_SAC as sac
 import torch.nn as nn
 from copy import deepcopy
 import itertools
 from torch.optim import Adam
-import reinforcement_learning.task1.britneyworld as bw
-import reinforcement_learning.task3.buffer as buf
+import task1.britneyworld as bw
+import task3.buffer as buf
+import task3.networks.q_network as qnet
+import task3.Discrete_SAC as SAC
 
 ####################### hyperparams #########################
 
@@ -115,7 +120,7 @@ def unittest_buffer():
     size = 100
     input_shape = (9, 4)
     num_actions = 10
-    buffer = buff.ReplayBuffer(input_shape, num_actions, size)
+    buffer = buf.ReplayBuffer(input_shape, num_actions, size)
     
     assert len(buffer) == 100 and buffer.memory_size == 100
     assert buffer.memory_counter == 0
@@ -212,7 +217,9 @@ def unittest_calculate_policy_loss():
     
     states, new_states, actions, rewards, dones = hughs_unittest_buffer.sample(30)
     
-    policy_loss = unittest_DSAC.policy_loss(states)
+
+    policy_loss = unittest_DSAC.calc_policy_loss(states)
+
     
     print(policy_loss)
     
@@ -248,7 +255,10 @@ def unittest_calculate_q_loss():
 unittest_calculate_q_loss()
     
     
-   
+def unittest_take_optimization_step():
+    pass
+
+
     
     
     

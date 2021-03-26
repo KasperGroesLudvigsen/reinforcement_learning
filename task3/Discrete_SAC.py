@@ -5,14 +5,17 @@ Created on Wed Mar 17 14:09:10 2021
 @author: groes
 """
 import torch 
-import reinforcement_learning.task3.networks.q_network as qnet
+import task3.networks.q_network as qnet
 import torch.nn.functional as F
-import reinforcement_learning.task3.networks.policy_network as pi_net
+import task3.networks.policy_network as pi_net
 import torch.nn as nn
 from copy import deepcopy
 import itertools
 from torch.optim import Adam
-import reinforcement_learning.utils.utils as utils
+
+import utils.utils as utils
+#import reinforcement_learning.utils.utils as utils
+
 import numpy as np
 
 class Actor_Critic(nn.Module):
@@ -40,13 +43,18 @@ class DiscreteSAC:
         
     """
     def __init__(self, ac_params, params):
+        
+        if torch.cuda.is_available():
+            self.device = torch.cuda.device("cuda")
+        else: 
+            self.device = torch.cuda.device("cpu")
 
         # Hyperparameters
         self.alpha = params["alpha"]
         self.gamma = params["gamma"]
         self.polyak = params["polyak"] # aka tau; regularizes target net updates
         self.clipping_norm = params["clipping_norm"]
-        self.tune_temperature = params["tune_temperature"] # bool 
+        self.automatic_entropy_tuning = params["automatic_entropy_tuning"] # bool 
         
         # Actor critic object contains 2 q nets and the policy net
         self.actor_critic = Actor_Critic(
@@ -64,7 +72,7 @@ class DiscreteSAC:
         
         # Freeze target networks with respect to optimizers (only update via 
         # polyak averaging)
-        for p in target_actor_critic.parameters():
+        for p in self.target_actor_critic.parameters():
             p.requires_grad = False
         
         # For efficient looping, just loops one after the other
@@ -75,6 +83,16 @@ class DiscreteSAC:
         self.q1_optimizer = Adam(self.actor_critic.q1.parameters(), lr=params["lr"])
         self.q2_optimizer = Adam(self.actor_critic.q2.parameters(), lr=params["lr"])
         
+        # Setting entropy tuning parameter (alpha)
+        if self.automatic_entropy_tuning:
+            # Copied from:
+            # https://github.com/p-christ/Deep-Reinforcement-Learning-Algorithms-with-PyTorch/blob/6297608b8524774c847ad5cad87e14b80abf69ce/agents/actor_critic_agents/SAC.py#L189
+            self.target_entropy = -torch.prod(torch.Tensor(self.environment.action_space.shape).to(self.device)).item()
+            self.log_alpha = torch.zeros(1, requires_grad=True, device=self.device)
+            self.alpha = self.log_alpha.exp()
+            self.alpha_optim = Adam([self.log_alpha], lr=params["lr"], eps=1e-4)
+        else:
+            self.alpha = params["entropy_alpha"]
         
     def environment_step(self, environment, buffer):
         # get state/observation from environment.
@@ -151,12 +169,14 @@ class DiscreteSAC:
         # This needs to be amended if we wanna do tuning of the temperature parameter
         # see update_actor_parameters() and __init__ method from
         #  https://github.com/p-christ/Deep-Reinforcement-Learning-Algorithms-with-PyTorch/blob/6297608b8524774c847ad5cad87e14b80abf69ce/agents/actor_critic_agents/SAC.py#L193 
-        if self.tune_temperature:
+        if self.automatic_entropy_tuning:
             alpha_loss = self.calculate_entropy_tuning_loss()
             self.take_optimisation_step(
                 self.alpha_optim, None, alpha_loss, None
                 )
             self.alpha = self.log_alpha.exp()
+            
+
 
         
     def take_optimization_step(self, optimizer, network, loss,
@@ -200,14 +220,14 @@ class DiscreteSAC:
             v = action_probabilities * qf_min - self.alpha * log_action_probabilities
             #print("v shape before squeeze: {}".format(v.shape))
             v = v.sum(dim=1).unsqueeze(-1)
+
             
             # Subtracting dones from 1 so that if next state is done, then the 
             # value of the move is = to rweard only
             reward_batch = reward_batch.unsqueeze(-1)
             mask = (1.0 - dones_batch).unsqueeze(-1)
             target_q_value = reward_batch + mask * self.gamma * v 
-
-        
+            
         # Estimate q values with q net and gather values
         # The qnets ouput a Q value for each action, so we use gather() to gather
         # the values corresponding to the action indices of the batch.
@@ -229,21 +249,21 @@ class DiscreteSAC:
         return torch.log(action_probabilities + z)
     
     
+
     def calc_policy_loss(self, state_batch, action_batch, reward_batch,
                          next_state_batch, dones_batch):
         """
         Calculates the loss for the actor. This loss includes the additional
         entropy term
         """
-        
-        # Use policy to generate action probability distribution and calc 
-        # log probabilities
+
         action_probabilities = self.actor_critic.policy(state_batch)
         log_action_probabilities = self.calc_log_prob(action_probabilities)
         
         # Estimate q values and get min to be used in inside_term
         q1 = self.actor_critic.q1(state_batch)
         q2 = self.actor_critic.q2(state_batch)
+
         min_q = torch.min(q1,q2)
         
         # Calculate log_action_probabilities
@@ -267,12 +287,13 @@ class DiscreteSAC:
                 target_param.data.add_((1 - self.polyak) * local_param.data)    
     
     
-    
-    
-    
-    
-    
-    
+    def calculate_entropy_tuning_loss(self, log_pi):
+        # Copied from: 
+        # https://github.com/p-christ/Deep-Reinforcement-Learning-Algorithms-with-PyTorch/blob/6297608b8524774c847ad5cad87e14b80abf69ce/agents/actor_critic_agents/SAC.py#L181
+        """Calculates the loss for the entropy temperature parameter. This is 
+        only relevant if self.automatic_entropy_tuning is True."""
+        alpha_loss = -(self.log_alpha * (log_pi + self.target_entropy).detach()).mean()
+        return alpha_loss
     
     
     
