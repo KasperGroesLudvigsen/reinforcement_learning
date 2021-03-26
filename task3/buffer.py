@@ -50,7 +50,7 @@ class ReplayBuffer:
         new_states = torch.as_tensor(self.new_state_memory[batch_idx], dtype=torch.float32)
         actions = torch.as_tensor(self.action_memory[batch_idx], dtype=torch.float32)
         rewards = torch.as_tensor(self.reward_memory[batch_idx], dtype=torch.float32)
-        dones = torch.as_tensor(self.reward_memory[batch_idx], dtype=torch.float32)
+        dones = torch.as_tensor(self.terminal_memory[batch_idx], dtype=torch.float32)
         
         return states, new_states, actions, rewards, dones
         
