@@ -247,8 +247,7 @@ class DiscreteSAC:
     
     
 
-    def calc_policy_loss(self, state_batch, action_batch, reward_batch,
-                         next_state_batch, dones_batch):
+    def calc_policy_loss(self, state_batch):
         """
         Calculates the loss for the actor. This loss includes the additional
         entropy term
