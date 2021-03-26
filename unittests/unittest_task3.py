@@ -4,21 +4,22 @@ Created on Mon Mar 15 18:50:50 2021
 
 @author: groes
 """
-import reinforcement_learning.task3.buffer as buff
 import numpy as np 
-import reinforcement_learning.task3.utils as utils
+import utils.utils as utils
 
 import torch 
 #import networks.q_network as qnet
 import torch.nn.functional as F
 #import networks.policy_network as pi_net
-import reinforcement_learning.task3.Discrete_SAC as sac
+import task3.Discrete_SAC as sac
 import torch.nn as nn
 from copy import deepcopy
 import itertools
 from torch.optim import Adam
-import reinforcement_learning.task1.britneyworld as bw
-import reinforcement_learning.task3.buffer as buf
+import task1.britneyworld as bw
+import task3.buffer as buf
+import task3.networks.q_network as qnet
+import task3.Discrete_SAC as SAC
 
 ####################### hyperparams #########################
 
@@ -43,7 +44,10 @@ unittest_params = {
     'lr': 0.001,
     'alpha' : 0.1,
     'gamma': 0.9,
-    'batch_size': 32
+    'batch_size': 32,
+    'polyak' : 0.8,
+    'clipping_norm': 0.7,
+    'tune_temperature' : 0.3
     }
 
 ################### classes ##################################
@@ -104,6 +108,7 @@ def unittest_environment_step():
     unittest_DSAC.environment_step(unittest_environment, unittest_buffer)
     #len(unittest_buffer.reward_memory)
     print(unittest_buffer.reward_memory[0])
+    
 unittest_environment_step()
 
 
@@ -111,7 +116,7 @@ def unittest_buffer():
     size = 100
     input_shape = (9, 4)
     num_actions = 10
-    buffer = buff.ReplayBuffer(input_shape, num_actions, size)
+    buffer = buf.ReplayBuffer(input_shape, num_actions, size)
     
     assert len(buffer) == 100 and buffer.memory_size == 100
     assert buffer.memory_counter == 0
@@ -136,6 +141,34 @@ def unittest_buffer():
    
 unittest_buffer()
 
+def hughs_much_better_unittest_buffer():
+    unittest_environment.reset()
+    
+    hughs_unittest_buffer = buf.ReplayBuffer(
+        unittest_buffer_params['obs_dims'],
+        unittest_buffer_params['num_actions'],
+        memory_size= 51
+        )
+    
+    for _ in range(50):
+        unittest_DSAC.environment_step(unittest_environment, hughs_unittest_buffer)
+    
+    print(hughs_unittest_buffer.memory_counter)
+    states, new_states, actions, rewards, dones = hughs_unittest_buffer.sample(30)
+    assert len(states) == 30
+    assert len(new_states) == 30
+    assert len(actions) == 30
+    assert len(rewards) == 30
+    assert len(dones) == 30
+    #print(states.squeeze().shape)
+    #print(new_states.shape)
+    print(actions.shape)
+    #print(rewards.shape)
+    #print(dones.shape)
+    
+hughs_much_better_unittest_buffer()
+    
+        
 
 def unittest_convert_state():
     env_size = 5
@@ -164,3 +197,76 @@ def unittest_convert_state():
     
     
 unittest_convert_state()
+
+
+def unittest_calculate_policy_loss():
+    unittest_environment.reset()
+    
+    hughs_unittest_buffer = buf.ReplayBuffer(
+        unittest_buffer_params['obs_dims'],
+        unittest_buffer_params['num_actions'],
+        memory_size= 100
+        )
+    
+    for _ in range(50):
+        unittest_DSAC.environment_step(unittest_environment, hughs_unittest_buffer)
+    
+    states, new_states, actions, rewards, dones = hughs_unittest_buffer.sample(30)
+    
+    policy_loss = unittest_DSAC.calc_policy_loss(states)
+    
+    print(policy_loss)
+    
+unittest_calculate_policy_loss()
+    
+def unittest_calculate_q_loss():
+    unittest_environment.reset()
+    
+    hughs_unittest_buffer = buf.ReplayBuffer(
+        unittest_buffer_params['obs_dims'],
+        unittest_buffer_params['num_actions'],
+        memory_size= 100
+        )
+    
+    for _ in range(50):
+        unittest_DSAC.environment_step(unittest_environment, hughs_unittest_buffer)
+    
+    states, new_states, actions, rewards, dones = hughs_unittest_buffer.sample(30)    
+    #print(states.squeeze().shape)
+    #print(new_states.shape)
+    #print(actions.shape)
+    states = states.squeeze()
+    new_states = new_states.squeeze()
+    #q1 = unittest_ac.policy(new_states.squeeze())
+    #q2 = unittest_ac.policy(new_states)
+    #print(q1.shape)
+    #print(q2.shape)
+    q1_loss, q2_loss = unittest_DSAC.calc_q_loss(states, actions, rewards, new_states, dones)
+    
+    print(q1_loss)
+    print(q2_loss)
+
+unittest_calculate_q_loss()
+    
+    
+def unittest_take_optimization_step():
+    pass
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
