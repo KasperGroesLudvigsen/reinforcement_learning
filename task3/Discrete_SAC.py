@@ -98,10 +98,11 @@ class DiscreteSAC:
         # get state/observation from environment.
         observation = environment.calculate_observations()
         converted_obs = utils.convert_state(observation)
+        
         # get action from state using policy.
         with torch.no_grad():
             action_distribuion = self.actor_critic.policy(converted_obs)
-        action = np.max(np.array(action_distribuion))
+        action = np.max(np.array(action_distribuion.squeeze()))
         # get reward, next state, done from environment by taking action in the world.
         _, reward, done = environment.take_action_guard(
             environment.guard_location,
@@ -114,7 +115,7 @@ class DiscreteSAC:
             done_num = 1
         else:
             done_num = 0
-        buffer.append(converted_obs, action, reward, converted_new_obs, done_num)
+        buffer.append(converted_obs, np.array(action_distribuion.squeeze()), reward, converted_new_obs, done_num)
         
         
     def gradient_step(self, buffer, batchsize):
@@ -206,7 +207,6 @@ class DiscreteSAC:
         
         # Estimate target q_value
         with torch.no_grad():
-            
             # Produce two q values via target q net and get min
             q_next_target = self.target_actor_critic.q1(next_state_batch) 
             q_next_target2 = self.target_actor_critic.q1(next_state_batch)
@@ -217,7 +217,7 @@ class DiscreteSAC:
             log_action_probabilities = self.calc_log_prob(action_probabilities)
             #print("action prob shape: {}".format(log_action_probabilities.shape))
             # Calculate policy value
-            v = action_probabilities * qf_min - self.alpha * log_action_probabilities
+            v = action_probabilities * (qf_min - self.alpha * log_action_probabilities)
             #print("v shape before squeeze: {}".format(v.shape))
             v = v.sum(dim=1).unsqueeze(-1)
 
@@ -235,12 +235,12 @@ class DiscreteSAC:
         q1 = self.actor_critic.q1(state_batch).gather(1, action_batch.long()) 
         q2 = self.actor_critic.q2(state_batch).gather(1, action_batch.long())
         
-        print("q1 shape: {}".format(q1.shape))
-        print("target q1 shape {}:".format(target_q_value.shape))
-        q1_loss = F.mse_loss(q1, target_q_value)
-        q2_loss = F.mse_loss(q2, target_q_value)
-        
+        q1_loss = F.mse_loss(q1[:,0], target_q_value.squeeze())
+        q2_loss = F.mse_loss(q2[:,0], target_q_value.squeeze())
+        #q1_loss = F.mse_loss(q1, target_q_value)
+        #q2_loss = F.mse_loss(q2, target_q_value)
         return q1_loss, q2_loss
+        
         
     
     def calc_log_prob(self, action_probabilities):
