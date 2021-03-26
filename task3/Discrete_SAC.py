@@ -44,10 +44,10 @@ class DiscreteSAC:
     """
     def __init__(self, ac_params, params):
         
-        if torch.cuda.is_available():
-            self.device = torch.cuda.device("cuda")
-        else: 
-            self.device = torch.cuda.device("cpu")
+        #if torch.cuda.is_available():
+        #    self.device = torch.cuda.device("cuda")
+        #else: 
+        #self.device = torch.cuda.device("cpu")
 
         # Hyperparameters
         self.alpha = params["alpha"]
@@ -87,7 +87,7 @@ class DiscreteSAC:
         if self.automatic_entropy_tuning:
             # Copied from:
             # https://github.com/p-christ/Deep-Reinforcement-Learning-Algorithms-with-PyTorch/blob/6297608b8524774c847ad5cad87e14b80abf69ce/agents/actor_critic_agents/SAC.py#L189
-            self.target_entropy = -torch.prod(torch.Tensor(self.environment.action_space.shape).to(self.device)).item()
+            self.target_entropy = -torch.prod(torch.Tensor(ac_params['num_actions']).to(self.device)).item()
             self.log_alpha = torch.zeros(1, requires_grad=True, device=self.device)
             self.alpha = self.log_alpha.exp()
             self.alpha_optim = Adam([self.log_alpha], lr=params["lr"], eps=1e-4)
@@ -115,6 +115,7 @@ class DiscreteSAC:
             done_num = 1
         else:
             done_num = 0
+        print(done_num)
         buffer.append(converted_obs, np.array(action_distribuion.squeeze()), reward, converted_new_obs, done_num)
         
         
@@ -247,8 +248,7 @@ class DiscreteSAC:
     
     
 
-    def calc_policy_loss(self, state_batch, action_batch, reward_batch,
-                         next_state_batch, dones_batch):
+    def calc_policy_loss(self, state_batch):
         """
         Calculates the loss for the actor. This loss includes the additional
         entropy term
