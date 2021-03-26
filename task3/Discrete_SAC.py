@@ -167,19 +167,17 @@ class DiscreteSAC:
         for p in self.q_params:
             p.requires_grad = True
         
-        # This needs to be amended if we wanna do tuning of the temperature parameter
-        # see update_actor_parameters() and __init__ method from
-        #  https://github.com/p-christ/Deep-Reinforcement-Learning-Algorithms-with-PyTorch/blob/6297608b8524774c847ad5cad87e14b80abf69ce/agents/actor_critic_agents/SAC.py#L193 
+        # Perform learning step on entropy tuning parameter and update it
         if self.automatic_entropy_tuning:
+            # Adapted from
+            # https://github.com/p-christ/Deep-Reinforcement-Learning-Algorithms-with-PyTorch/blob/6297608b8524774c847ad5cad87e14b80abf69ce/agents/actor_critic_agents/SAC.py#L193 
             alpha_loss = self.calculate_entropy_tuning_loss()
-            self.take_optimisation_step(
+            self.take_optimization_step(
                 self.alpha_optim, None, alpha_loss, None
                 )
             self.alpha = self.log_alpha.exp()
-            
 
 
-        
     def take_optimization_step(self, optimizer, network, loss,
                                clipping_norm=None):
         optimizer.zero_grad()
@@ -198,8 +196,7 @@ class DiscreteSAC:
                                              local_model.parameters()):
             target_param.data.copy_(
                 tau*local_param.data + (1.0-tau)*target_param.data
-                )
-        
+                )     
     
     def calc_q_loss(self, state_batch, action_batch, reward_batch,
                     next_state_batch, dones_batch):
