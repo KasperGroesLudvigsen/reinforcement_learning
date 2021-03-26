@@ -12,7 +12,7 @@ import torch.nn as nn
 from copy import deepcopy
 import itertools
 from torch.optim import Adam
-import reinforcement_learning.task3.utils as utils
+import reinforcement_learning.utils.utils as utils
 import numpy as np
 
 class Actor_Critic(nn.Module):
@@ -195,14 +195,18 @@ class DiscreteSAC:
             # The policy_net is from local ac
             action_probabilities = self.actor_critic.policy(next_state_batch)
             log_action_probabilities = self.calc_log_prob(action_probabilities)
-            
+            #print("action prob shape: {}".format(log_action_probabilities.shape))
             # Calculate policy value
             v = action_probabilities * qf_min - self.alpha * log_action_probabilities
+            #print("v shape before squeeze: {}".format(v.shape))
             v = v.sum(dim=1).unsqueeze(-1)
             
             # Subtracting dones from 1 so that if next state is done, then the 
             # value of the move is = to rweard only
-            target_q_value = reward_batch + (1.0 - dones_batch) + self.gamma * v 
+            reward_batch = reward_batch.unsqueeze(-1)
+            mask = (1.0 - dones_batch).unsqueeze(-1)
+            target_q_value = reward_batch + mask * self.gamma * v 
+
         
         # Estimate q values with q net and gather values
         # The qnets ouput a Q value for each action, so we use gather() to gather
@@ -211,6 +215,8 @@ class DiscreteSAC:
         q1 = self.actor_critic.q1(state_batch).gather(1, action_batch.long()) 
         q2 = self.actor_critic.q2(state_batch).gather(1, action_batch.long())
         
+        print("q1 shape: {}".format(q1.shape))
+        print("target q1 shape {}:".format(target_q_value.shape))
         q1_loss = F.mse_loss(q1, target_q_value)
         q2_loss = F.mse_loss(q2, target_q_value)
         
@@ -235,19 +241,16 @@ class DiscreteSAC:
         action_probabilities = self.actor_critic.policy(state_batch)
         log_action_probabilities = self.calc_log_prob(action_probabilities)
         
-        # Estimate q values and get min
-        q1 = self.actor_critic.q1(state_batch).gather(1, action_batch.long()) 
-        q2 = self.actor_critic.q2(state_batch).gather(1, action_batch.long())
+        # Estimate q values and get min to be used in inside_term
+        q1 = self.actor_critic.q1(state_batch)
+        q2 = self.actor_critic.q2(state_batch)
         min_q = torch.min(q1,q2)
         
         # Calculate log_action_probabilities
         inside_term = self.alpha * log_action_probabilities - min_q
         policy_loss = (action_probabilities * inside_term).sum(dim=1).mean()
-        log_action_probabilities = torch.sum(
-            log_action_probabilities * action_probabilities, dim=1
-            )
-        
-        return policy_loss, log_action_probabilities
+
+        return policy_loss
     
     
     def calc_entropy_tuning_loss(self, log_pi):
