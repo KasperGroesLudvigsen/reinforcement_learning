@@ -25,7 +25,7 @@ class ReplayBuffer:
         self.action_memory = np.zeros((self.memory_size, num_actions), dtype=np.float32)
         self.reward_memory = np.zeros((self.memory_size))
         # Store whether the state was terminal
-        self.terminal_memory = np.zeros(self.memory_size, dtype=np.float32)
+        self.terminal_memory = np.zeros(self.memory_size, dtype=np.int8)
 
     def __len__(self):
         return len(self.reward_memory)
@@ -51,6 +51,9 @@ class ReplayBuffer:
         actions = torch.as_tensor(self.action_memory[batch_idx], dtype=torch.float32)
         rewards = torch.as_tensor(self.reward_memory[batch_idx], dtype=torch.float32)
         dones = torch.as_tensor(self.reward_memory[batch_idx], dtype=torch.float32)
+        
+        states = states.squeeze()
+        new_states = new_states.squeeze()
         
         return states, new_states, actions, rewards, dones
         
