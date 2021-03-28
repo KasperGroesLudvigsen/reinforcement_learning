@@ -44,7 +44,8 @@ class ReplayBuffer:
         
     def sample(self, batch_size):
         n_stored_memories = min(self.memory_counter, self.memory_size)
-        batch_idx = np.random.choice(n_stored_memories, batch_size, replace=False)
+        big_as_batch_can_be = min(n_stored_memories, batch_size)
+        batch_idx = np.random.choice(n_stored_memories, big_as_batch_can_be, replace=False)
         
         states = torch.as_tensor(self.state_memory[batch_idx], dtype=torch.float32)
         new_states = torch.as_tensor(self.new_state_memory[batch_idx], dtype=torch.float32)

@@ -51,7 +51,9 @@ unittest_params = {
     'batch_size': 32,
     'polyak' : 0.8,
     'clipping_norm': 0.7,
-    'tune_temperature' : 0.3
+    'tune_temperature' : 0.3,
+    "automatic_entropy_tuning":False,
+    "entropy_alpha":0.5
     }
 
 ################### classes ##################################
@@ -174,12 +176,12 @@ def hughs_much_better_unittest_buffer():
     q1 = unittest_DSAC.actor_critic.q1(states.squeeze()) 
     #print("q1 before gathering{}:".format(q1))
     q1 = q1.gather(1, actions.long())
-    print("q1 after gathering{}:".format(q1[:,0]))
+    #print("q1 after gathering{}:".format(q1[:,0]))
     #print(states.squeeze())
     #print(new_states.shape)
     #print(actions)
     #print(actions)
-    #print(dones)
+    print(dones)
 hughs_much_better_unittest_buffer()
     
         
