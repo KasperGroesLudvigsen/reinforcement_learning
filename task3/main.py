@@ -45,7 +45,7 @@ params = {
     'batch_size': 32,
     'polyak' : 0.8,
     'clipping_norm': None,
-    'tune_temperature' : 0.3,
+    'tune_temperature' : 0.5,
     "automatic_entropy_tuning":False,
     "entropy_alpha":0.5
     }
@@ -80,9 +80,11 @@ environment.display()
 def learning_environment(number_of_episodes):
 
     #fill up buffer
-    done = False
-    while not done:
-        done = DSAC.environment_step(environment, buffer)
+    
+    for _ in range(32):
+        done = False
+        while not done:
+            done = DSAC.environment_step(environment, buffer)
     
     ran_out_of_time = 0
     success = 0
@@ -98,7 +100,7 @@ def learning_environment(number_of_episodes):
         done = False
         while not done:
             done = DSAC.environment_step(environment, buffer)
-            DSAC.gradient_step(buffer, params['batch_size'])
+            DSAC.gradient_step_experiment(buffer, params['batch_size'])
             # add some visual stuff
         if environment.time_elapsed == environment.time_limit:
             ran_out_of_time += 1
@@ -107,9 +109,9 @@ def learning_environment(number_of_episodes):
     print("times ran out: {}".format(ran_out_of_time))
     print("successes: {}".format(success))       
 
-learning_environment(200)
-learning_environment(200)
-learning_environment(200)
+learning_environment(2000)
+learning_environment(2000)
+learning_environment(2000)
 
 
 

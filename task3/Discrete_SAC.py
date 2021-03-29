@@ -180,11 +180,75 @@ class DiscreteSAC:
                 self.alpha_optim, None, alpha_loss, None
                 )
             self.alpha = self.log_alpha.exp()
+            
+    def gradient_step_experiment(self, buffer, batchsize):
+        """
+        This function performs the learning steps for all networks
+        
+        args:
+            buffer (ReplayBuffer) : Contains past experiences (transitions)
+            
+            batchsizez (int) : how many transitions to train on before backprop
+        """
+        
+        # Randomly sample a batch of transitions from replay buffer 
+        states, new_states, actions, rewards, dones = buffer.sample(batchsize)
+        #print(states.shape, new_states.shape)
+        states = states.squeeze()
+        #print(states.shape, new_states.shape)
+        new_states = new_states.squeeze()
+        # Update both local Qs with gradient descent 
+        self.q1_optimizer.zero_grad()
+        self.q2_optimizer.zero_grad()
+        q1_loss, q2_loss = self.calc_q_loss(
+            states, actions, rewards, new_states, dones
+            )
+        #q1_loss = q1_loss.requires_grad_(True)
+        #q2_loss = q2_loss.requires_grad_(True)
+        q1_loss.backward
+        q2_loss.backward
+        
+        self.q1_optimizer.step()
+        self.q2_optimizer.step()
 
+        
+        # Soft updating target q nets
+        self.soft_update_of_target_net(
+            self.target_actor_critic.q1, self.actor_critic.q1, self.polyak
+            )
+        self.soft_update_of_target_net(
+            self.target_actor_critic.q2, self.actor_critic.q2, self.polyak
+            )
+        
+        # Freezing q nets while updating policy net
+        for p in self.q_params:
+            p.requires_grad = False
+        
+        # Updating 
+        self.pi_optimizer.zero_grad()
+        policy_loss = self.calc_policy_loss(states)
+        #policy_loss = policy_loss.clone().detach().requires_grad_(True)
+        policy_loss.backward
+        self.pi_optimizer.step()
+        
+        # Unfreezing q nets while updating policy net
+        for p in self.q_params:
+            p.requires_grad = True
+        
+        # Perform learning step on entropy tuning parameter and update it
+        if self.automatic_entropy_tuning:
+            # Adapted from
+            # https://github.com/p-christ/Deep-Reinforcement-Learning-Algorithms-with-PyTorch/blob/6297608b8524774c847ad5cad87e14b80abf69ce/agents/actor_critic_agents/SAC.py#L193 
+            alpha_loss = self.calculate_entropy_tuning_loss()
+            self.take_optimization_step(
+                self.alpha_optim, None, alpha_loss, None
+                )
+            self.alpha = self.log_alpha.exp()
 
     def take_optimization_step(self, optimizer, network, loss,
                                clipping_norm=None):
         optimizer.zero_grad()
+        #calculate_loss
         loss.backward()
         #if clipping_norm is not None:
         #    for net in network:
@@ -236,8 +300,8 @@ class DiscreteSAC:
         q1 = self.actor_critic.q1(state_batch).gather(1, action_batch.long()) 
         q2 = self.actor_critic.q2(state_batch).gather(1, action_batch.long())
         
-        q1_loss = F.mse_loss(q1, target_q_value.squeeze())
-        q2_loss = F.mse_loss(q2, target_q_value.squeeze())
+        q1_loss = F.mse_loss(q1[:,0], target_q_value.squeeze())
+        q2_loss = F.mse_loss(q2[:,0], target_q_value.squeeze())
         #q1_loss = F.mse_loss(q1, target_q_value)
         #q2_loss = F.mse_loss(q2, target_q_value)
         return q1_loss, q2_loss
