@@ -217,7 +217,7 @@ class Environment:
     def display(self):
         # Lifted from Michael's code
         
-        envir_with_agent = self.map.copy()
+        envir_with_agent = np.asarray(self.map).copy()
         envir_with_agent[self.guard_location[0], self.guard_location[1]] = 4
         envir_with_agent[self.britney_location[0], self.britney_location[1]] = 2
         envir_with_agent[self.car_location[0], self.car_location[1]] = 3
