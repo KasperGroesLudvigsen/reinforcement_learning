@@ -276,7 +276,6 @@ def unittest_take_optimization_step():
     original_q2_model = deepcopy(dsac.actor_critic.q2)
     original_policy_model = deepcopy(dsac.actor_critic.policy)
 
-    =======
     # Taking 10 optimization steps and checking after each 
     for _ in range(10):
 
