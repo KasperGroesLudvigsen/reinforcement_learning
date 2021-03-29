@@ -44,7 +44,7 @@ params = {
     'gamma': 0.9,
     'batch_size': 32,
     'polyak' : 0.8,
-    'clipping_norm': 0.7,
+    'clipping_norm': None,
     'tune_temperature' : 0.3,
     "automatic_entropy_tuning":False,
     "entropy_alpha":0.5
@@ -68,28 +68,51 @@ DSAC = sac.DiscreteSAC(ac_params, params)
 
 #environment = bw.Environment(environment_params)
 
-
-
+environment = bw.Environment(environment_params)
+environment.reset()
+buffer = buf.ReplayBuffer(
+    buffer_params['obs_dims'],
+    buffer_params['num_actions']
+    )
+environment.display()
 
 
 def learning_environment(number_of_episodes):
 
-    environment = bw.Environment(environment_params)
+    #fill up buffer
+    done = False
+    while not done:
+        done = DSAC.environment_step(environment, buffer)
     
-    buffer = buf.ReplayBuffer(
-        buffer_params['obs_dims'],
-        buffer_params['num_actions']
-        )
-    
+    ran_out_of_time = 0
+    success = 0
+        
     for _ in range(number_of_episodes): 
-        environment.respawn
+        environment.respawn()
         
         
         
-        DSAC.environment_step(environment, buffer)
         #if params['batch_size'] > buffer.memory_counter:
-        DSAC.gradient_step(buffer, params['batch_size'])
         
-        # add some visual stuff
+        environment.respawn
+        done = False
+        while not done:
+            done = DSAC.environment_step(environment, buffer)
+            DSAC.gradient_step(buffer, params['batch_size'])
+            # add some visual stuff
+        if environment.time_elapsed == environment.time_limit:
+            ran_out_of_time += 1
+        else:
+            success +=1
+    print("times ran out: {}".format(ran_out_of_time))
+    print("successes: {}".format(success))       
 
-learning_environment(5)
+learning_environment(200)
+learning_environment(200)
+learning_environment(200)
+
+
+
+#for _ in range(10):
+#    learning_environment(10)
+#environment.display()

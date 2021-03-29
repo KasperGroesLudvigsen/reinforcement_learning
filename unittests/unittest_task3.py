@@ -50,7 +50,7 @@ unittest_params = {
     'gamma': 0.9,
     'batch_size': 32,
     'polyak' : 0.8,
-    'clipping_norm': 0.7,
+    'clipping_norm': None,
     'tune_temperature' : 0.3,
     "automatic_entropy_tuning":False,
     "entropy_alpha":0.5
@@ -268,12 +268,65 @@ unittest_calculate_q_loss()
     
     
 def unittest_take_optimization_step():
-    pass
+    unittest_environment.reset()
+
+    hughs_unittest_buffer = buf.ReplayBuffer(
+        unittest_buffer_params['obs_dims'],
+        unittest_buffer_params['num_actions'],
+        memory_size= 100
+        )
+    
+    for _ in range(50):
+        dont = unittest_DSAC.environment_step(unittest_environment, hughs_unittest_buffer)
+    
+    unittest_DSAC.gradient_step(hughs_unittest_buffer, 30)
+
+unittest_take_optimization_step()
 
 
+
+
+    states = states.squeeze()
+    new_states = new_states.squeeze()
+
+    q1_loss, q2_loss = unittest_DSAC.calc_q_loss(states, actions, rewards, new_states, dones)
+    #print(q1_loss)
+    #q1_loss = torch.tensor(q1_loss, requires_grad = True)
+    q1_loss = q1_loss.clone().detach().requires_grad_(True)
+    q2_loss = q2_loss.clone().detach().requires_grad_(True)
+    #policy_loss = unittest_DSAC.calc_policy_loss(states)
+    #policy_loss = torch.tensor([policy_loss], requires_grad = True)
+    #print(policy_loss)
+    unittest_DSAC.take_optimization_step(
+            unittest_DSAC.q1_optimizer, unittest_DSAC.actor_critic.q1, q1_loss, unittest_DSAC.clipping_norm
+            )
+    unittest_DSAC.take_optimization_step(
+            unittest_DSAC.q2_optimizer, unittest_DSAC.actor_critic.q2, q2_loss, unittest_DSAC.clipping_norm
+            )
+    
+    for p in unittest_DSAC.q_params:
+            p.requires_grad = False
+        
+    # Updating policy
+    policy_loss = unittest_DSAC.calc_policy_loss(states)
+    policy_loss = policy_loss.clone().detach().requires_grad_(True)
+    #policy_loss = torch.tensor([policy_loss], requires_grad = True)
+    unittest_DSAC.take_optimization_step(
+        unittest_DSAC.pi_optimizer, unittest_DSAC.actor_critic.policy, 
+        policy_loss, unittest_DSAC.clipping_norm
+        )
+    
+    #Unfreezing q nets while updating policy net
+    for p in unittest_DSAC.q_params:
+        p.requires_grad = True
+        
+    
+    
+unittest_take_optimization_step()
     
     
     
+       
     
     
     

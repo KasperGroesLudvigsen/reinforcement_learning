@@ -115,9 +115,8 @@ class DiscreteSAC:
             done_num = 1
         else:
             done_num = 0
-        print(done_num)
         buffer.append(converted_obs, np.array(action_distribuion.squeeze()), reward, converted_new_obs, done_num)
-        
+        return done
         
     def gradient_step(self, buffer, batchsize):
         """
@@ -130,12 +129,17 @@ class DiscreteSAC:
         """
         
         # Randomly sample a batch of transitions from replay buffer 
-        states, actions, rewards, new_states, dones = buffer.sample(batchsize)
-
+        states, new_states, actions, rewards, dones = buffer.sample(batchsize)
+        #print(states.shape, new_states.shape)
+        states = states.squeeze()
+        #print(states.shape, new_states.shape)
+        new_states = new_states.squeeze()
         # Update both local Qs with gradient descent 
         q1_loss, q2_loss = self.calc_q_loss(
             states, actions, rewards, new_states, dones
             )
+        q1_loss = q1_loss.requires_grad_(True)
+        q2_loss = q2_loss.requires_grad_(True)
         self.take_optimization_step(
             self.q1_optimizer, self.actor_critic.q1, q1_loss, self.clipping_norm
             )
@@ -156,9 +160,8 @@ class DiscreteSAC:
             p.requires_grad = False
         
         # Updating policy
-        policy_loss, _ = self.calc_policy_loss(
-            states, actions, rewards, new_states, dones
-            )
+        policy_loss = self.calc_policy_loss(states)
+        policy_loss = policy_loss.clone().detach().requires_grad_(True)
         self.take_optimization_step(
             self.pi_optimizer, self.actor_critic.policy, 
             policy_loss, self.clipping_norm
@@ -183,9 +186,9 @@ class DiscreteSAC:
                                clipping_norm=None):
         optimizer.zero_grad()
         loss.backward()
-        if clipping_norm is not None:
-            for net in network:
-                torch.nn.utils.clip_grad_norm(net.parameters(), clipping_norm)
+        #if clipping_norm is not None:
+        #    for net in network:
+        #        torch.nn.utils.clip_grad_norm(net.parameters(), clipping_norm)
         optimizer.step()
         
         
@@ -233,8 +236,8 @@ class DiscreteSAC:
         q1 = self.actor_critic.q1(state_batch).gather(1, action_batch.long()) 
         q2 = self.actor_critic.q2(state_batch).gather(1, action_batch.long())
         
-        q1_loss = F.mse_loss(q1[:,0], target_q_value.squeeze())
-        q2_loss = F.mse_loss(q2[:,0], target_q_value.squeeze())
+        q1_loss = F.mse_loss(q1, target_q_value.squeeze())
+        q2_loss = F.mse_loss(q2, target_q_value.squeeze())
         #q1_loss = F.mse_loss(q1, target_q_value)
         #q2_loss = F.mse_loss(q2, target_q_value)
         return q1_loss, q2_loss
@@ -269,10 +272,6 @@ class DiscreteSAC:
 
         return policy_loss
     
-    
-    def calc_entropy_tuning_loss(self, log_pi):
-        # TBD
-        pass
     
     def polyak_target_update(self, local_model, target_model):
         """ 
