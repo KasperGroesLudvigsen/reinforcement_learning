@@ -102,7 +102,10 @@ class DiscreteSAC:
         # get action from state using policy.
         with torch.no_grad():
             action_distribuion = self.actor_critic.policy(converted_obs)
-        action = np.max(np.array(action_distribuion.squeeze()))
+        action_index = np.argmax(np.array(action_distribuion.squeeze()))
+        actions = ["N", "E", "S", "W", "NE", "SE", "SW", "NW" ,"push"]
+        action = actions[action_index]
+        print(action)
         # get reward, next state, done from environment by taking action in the world.
         _, reward, done = environment.take_action_guard(
             environment.guard_location,
@@ -115,7 +118,7 @@ class DiscreteSAC:
             done_num = 1
         else:
             done_num = 0
-        buffer.append(converted_obs, np.array(action_distribuion.squeeze()), reward, converted_new_obs, done_num)
+        buffer.append(converted_obs, action_index, reward, converted_new_obs, done_num)
         return done
         
     def gradient_step(self, buffer, batchsize):
@@ -228,6 +231,7 @@ class DiscreteSAC:
         self.pi_optimizer.zero_grad()
         policy_loss = self.calc_policy_loss(states)
         #policy_loss = policy_loss.clone().detach().requires_grad_(True)
+        policy_loss = - policy_loss
         policy_loss.backward
         self.pi_optimizer.step()
         
@@ -247,7 +251,7 @@ class DiscreteSAC:
 
     def take_optimization_step(self, optimizer, network, loss,
                                clipping_norm=None):
-        optimizer.zero_grad()
+        #optimizer.zero_grad()
         #calculate_loss
         loss.backward()
         #if clipping_norm is not None:
@@ -292,18 +296,19 @@ class DiscreteSAC:
             reward_batch = reward_batch.unsqueeze(-1)
             mask = (1.0 - dones_batch).unsqueeze(-1)
             target_q_value = reward_batch + mask * self.gamma * v 
+            #print("target q shape:",target_q_value.shape )
             
         # Estimate q values with q net and gather values
         # The qnets ouput a Q value for each action, so we use gather() to gather
         # the values corresponding to the action indices of the batch.
         # Explanation of gather() https://medium.com/analytics-vidhya/understanding-indexing-with-pytorch-gather-33717a84ebc4
-        q1 = self.actor_critic.q1(state_batch).gather(1, action_batch.long()) 
-        q2 = self.actor_critic.q2(state_batch).gather(1, action_batch.long())
-        
-        q1_loss = F.mse_loss(q1[:,0], target_q_value.squeeze())
-        q2_loss = F.mse_loss(q2[:,0], target_q_value.squeeze())
-        #q1_loss = F.mse_loss(q1, target_q_value)
-        #q2_loss = F.mse_loss(q2, target_q_value)
+        q1 = self.actor_critic.q1(state_batch).gather(1, action_batch.unsqueeze(-1).long()) 
+        q2 = self.actor_critic.q2(state_batch).gather(1, action_batch.unsqueeze(-1).long())
+        #print("q1 shape", q1.shape)
+        #q1_loss = F.mse_loss(q1[:,0], target_q_value.squeeze())
+        #q2_loss = F.mse_loss(q2[:,0], target_q_value.squeeze())
+        q1_loss = F.mse_loss(q1, target_q_value)
+        q2_loss = F.mse_loss(q2, target_q_value)
         return q1_loss, q2_loss
         
         
