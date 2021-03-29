@@ -100,6 +100,7 @@ def learning_environment(number_of_episodes):
         done = False
         while not done:
             done = DSAC.environment_step(environment, buffer)
+            environment.display()
             DSAC.gradient_step_experiment(buffer, params['batch_size'])
             # add some visual stuff
         if environment.time_elapsed == environment.time_limit:
@@ -109,10 +110,10 @@ def learning_environment(number_of_episodes):
     print("times ran out: {}".format(ran_out_of_time))
     print("successes: {}".format(success))       
 
-learning_environment(2000)
-learning_environment(2000)
-learning_environment(2000)
-
+learning_environment(1)
+learning_environment(200)
+#earning_environment(2000)
+#SAC.alpha = 0.1
 
 
 #for _ in range(10):
