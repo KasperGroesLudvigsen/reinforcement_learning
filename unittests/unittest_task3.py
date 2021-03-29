@@ -268,6 +268,12 @@ unittest_calculate_q_loss()
     
     
 def unittest_take_optimization_step():
+    pass
+
+
+
+
+def unittest_gradient():
     unittest_environment.reset()
 
     hughs_unittest_buffer = buf.ReplayBuffer(
@@ -281,7 +287,7 @@ def unittest_take_optimization_step():
     
     unittest_DSAC.gradient_step(hughs_unittest_buffer, 30)
 
-unittest_take_optimization_step()
+unittest_gradient()
 
 
 
