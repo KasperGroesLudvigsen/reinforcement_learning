@@ -12,8 +12,9 @@ import torch.nn as nn
 from copy import deepcopy
 import itertools
 from torch.optim import Adam
+import random
 
-import utils.utils as utils
+import task3.utils as utils
 #import reinforcement_learning.utils.utils as utils
 
 import numpy as np
@@ -94,18 +95,30 @@ class DiscreteSAC:
         else:
             self.alpha = params["entropy_alpha"]
         
-    def environment_step(self, environment, buffer):
+    def environment_step(self, environment, buffer, buffer_fill):
         # get state/observation from environment.
         observation = environment.calculate_observations()
         converted_obs = utils.convert_state(observation)
-        
+        #print(converted_obs)
+        actions = ["N", "E", "S", "W", "NE", "SE", "SW", "NW" ,"push", "pull"]
         # get action from state using policy.
-        with torch.no_grad():
-            action_distribuion = self.actor_critic.policy(converted_obs)
-        action_index = np.argmax(np.array(action_distribuion.squeeze()))
-        actions = ["N", "E", "S", "W", "NE", "SE", "SW", "NW" ,"push"]
-        action = actions[action_index]
-        print(action)
+        if buffer_fill == False:
+            with torch.no_grad():
+                action_distribuion = self.actor_critic.policy(converted_obs)
+                print(action_distribuion)
+            action_index = np.argmax(np.array(action_distribuion.squeeze()))
+            
+        if buffer_fill == True:
+            greedy_prob = random.random() # this should be between 0 and 1, 
+            if greedy_prob < 1.0:
+                action_index = random.randint(0,9)
+            else:
+                with torch.no_grad():
+                    action_distribuion = self.actor_critic.policy(converted_obs)
+                action_index = np.argmax(np.array(action_distribuion.squeeze()))
+            
+        action = actions[action_index]  
+        
         # get reward, next state, done from environment by taking action in the world.
         _, reward, done = environment.take_action_guard(
             environment.guard_location,
@@ -250,13 +263,13 @@ class DiscreteSAC:
             self.alpha = self.log_alpha.exp()
 
     def take_optimization_step(self, optimizer, network, loss,
-                               clipping_norm=None):
+                               clipping_norm=3):
         #optimizer.zero_grad()
         #calculate_loss
         loss.backward()
-        #if clipping_norm is not None:
-        #    for net in network:
-        #        torch.nn.utils.clip_grad_norm(net.parameters(), clipping_norm)
+        if clipping_norm is not None:
+            for net in network:
+                torch.nn.utils.clip_grad_norm(net.parameters(), clipping_norm)
         optimizer.step()
         
         
@@ -278,7 +291,7 @@ class DiscreteSAC:
         with torch.no_grad():
             # Produce two q values via target q net and get min
             q_next_target = self.target_actor_critic.q1(next_state_batch) 
-            q_next_target2 = self.target_actor_critic.q1(next_state_batch)
+            q_next_target2 = self.target_actor_critic.q2(next_state_batch)
             qf_min = torch.min(q_next_target, q_next_target2)
             
             # The policy_net is from local ac
@@ -314,8 +327,8 @@ class DiscreteSAC:
         
     
     def calc_log_prob(self, action_probabilities):
-        z = action_probabilities == 0.0
-        z = z.float() * 1e-8
+        z = action_probabilities #== 0.0
+        z = z.float() * 1e-9
         return torch.log(action_probabilities + z)
     
     

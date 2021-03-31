@@ -1,6 +1,6 @@
 import numpy as np 
 
-import utils.utils as utils
+import task3.utils as utils
 
 #import reinforcement_learning.utils.utils as utils
 
@@ -23,31 +23,31 @@ import task3.Discrete_SAC as SAC
 
 environment_params = {
     'N' : 10,
-    'stumble_prob' : 0.3
+    'stumble_prob' : 1
     }
 
 buffer_params = {
-    'obs_dims': (1,13),
-    'num_actions': 9
+    'obs_dims': (1,6),
+    'num_actions': 10
     }
 
 ac_params = {
-    'num_obs' : 13,
-    'num_actions' : 9,
-    'hidden_sizes' : [100,100],
+    'num_obs' : 6,
+    'num_actions' : 10,
+    'hidden_sizes' : [32,32],
     'activation_func': nn.ReLU
     }
 
 params = {
-    'lr': 0.001,
-    'alpha' : 0.1,
-    'gamma': 0.9,
-    'batch_size': 32,
-    'polyak' : 0.8,
-    'clipping_norm': None,
+    'lr': 0.0001,
+    'alpha' : 0.99,
+    'gamma': 0.99,
+    'batch_size': 256,
+    'polyak' : 0.5,
+    'clipping_norm': 2,
     'tune_temperature' : 0.5,
     "automatic_entropy_tuning":False,
-    "entropy_alpha":0.5
+    "entropy_alpha":0.0
     }
 
 ################# params ######################
@@ -77,31 +77,38 @@ buffer = buf.ReplayBuffer(
 environment.display()
 
 
-def learning_environment(number_of_episodes):
+def learning_environment(seed, random_episodes, number_of_episodes):
 
     #fill up buffer
     
-    for _ in range(32):
+    for _ in range(seed):
         done = False
+        environment.reset()
         while not done:
-            done = DSAC.environment_step(environment, buffer)
+            done = DSAC.environment_step(environment, buffer, buffer_fill=True)
     
+    
+    for _ in range(random_episodes):
+        done = False
+        environment.reset()
+        while not done:
+            done = DSAC.environment_step(environment, buffer, buffer_fill=True)
+            DSAC.gradient_step_experiment(buffer, params['batch_size'])
+            #DSAC.gradient_step_experiment(buffer, params['batch_size'])
+            #DSAC.gradient_step_experiment(buffer, params['batch_size'])
     ran_out_of_time = 0
     success = 0
         
     for _ in range(number_of_episodes): 
-        environment.respawn()
+        environment.reset()
         
-        
-        
-        #if params['batch_size'] > buffer.memory_counter:
-        
-        environment.respawn
         done = False
         while not done:
-            done = DSAC.environment_step(environment, buffer)
-            environment.display()
+            done = DSAC.environment_step(environment, buffer, buffer_fill = False)
+            #environment.display()
+            #DSAC.gradient_step_experiment(buffer, params['batch_size'])
             DSAC.gradient_step_experiment(buffer, params['batch_size'])
+            #DSAC.gradient_step_experiment(buffer, params['batch_size'])
             # add some visual stuff
         if environment.time_elapsed == environment.time_limit:
             ran_out_of_time += 1
@@ -110,10 +117,10 @@ def learning_environment(number_of_episodes):
     print("times ran out: {}".format(ran_out_of_time))
     print("successes: {}".format(success))       
 
-learning_environment(1)
-learning_environment(200)
-#earning_environment(2000)
-#SAC.alpha = 0.1
+#learning_environment(1)
+#learning_environment(1000, 200)
+learning_environment(0,0, 1)
+#SAC.alpha = 0.
 
 
 #for _ in range(10):
