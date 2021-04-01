@@ -51,11 +51,11 @@ class DiscreteSAC:
             self.device = torch.device("cpu")
 
         # Hyperparameters
-        self.alpha = params["alpha"]
         self.gamma = params["gamma"]
         self.polyak = params["polyak"] # aka tau; regularizes target net updates
         self.clipping_norm = params["clipping_norm"]
         self.automatic_entropy_tuning = params["automatic_entropy_tuning"] # bool 
+        self.train_mode = True
         
         # Actor critic object contains 2 q nets and the policy net
         self.actor_critic = Actor_Critic(
@@ -104,12 +104,19 @@ class DiscreteSAC:
         # get action from state using policy.
         if buffer_fill == False:
             with torch.no_grad():
-                action_distribuion = self.actor_critic.policy(converted_obs)
-                action_distribuion = action_distribuion.flatten().tolist()
-                #print('Action dis: ', action_distribuion)
-                action_distribuion = [x / sum(action_distribuion) for x in action_distribuion]
-                action = np.random.choice(actions, p = action_distribuion)
-                #print(action)
+                action_distribution = self.actor_critic.policy(converted_obs)
+                print('Action dis: ', action_distribution)
+                #action_distribution = action_distribution.squeeze()
+                #print('Action dis: ', action_distribution)
+                #action_distribution = action_distribution.flatten().tolist()
+                action_distribution = np.asarray(action_distribution)[0]
+                #action_distribution = [x / sum(action_distribution) for x in action_distribution]
+                if self.train_mode:    
+                    action = np.random.choice(actions, p = action_distribution)
+                    action_index = actions.index(action)
+                else:
+                    action_index = np.argmax(action_distribution)
+                    action = actions[action_index]
             
         if buffer_fill == True:
             greedy_prob = random.random() # this should be between 0 and 1, 
@@ -119,14 +126,21 @@ class DiscreteSAC:
             else:
                 with torch.no_grad():
                     #print('Action selection')
-                    action_distribuion = self.actor_critic.policy(converted_obs)
-                    action_distribuion = action_distribuion.flatten().tolist()
-                    #print('Action dis: ', action_distribuion)
-                    action_distribuion = [x / sum(action_distribuion) for x in action_distribuion]
-                    action = np.random.choice(actions, p = action_distribuion)
+                    action_distribution = self.actor_critic.policy(converted_obs)
+                    #action_distribution = action_distribution.squeeze()
+                    #print('Action dis: ', action_distribution.sum())
+                    #print('Action dis: ', action_distribution)
+                    #action_distribution = action_distribution.flatten().tolist()
+                    action_distribution = np.asarray(action_distribution)[0]
+                    #action_distribution = [x / sum(action_distribution) for x in action_distribution]
+                    if self.train_mode:    
+                        action = np.random.choice(actions, p = action_distribution)
+                        action_index = actions.index(action)
+                    else:
+                        action_index = np.argmax(action_distribution)
+                        action = actions[action_index]
         
         
-        action_index = actions.index(action)
         
         # get reward, next state, done from environment by taking action in the world.
         _, reward, done = environment.take_action_guard(
@@ -140,6 +154,10 @@ class DiscreteSAC:
             done_num = 1
         else:
             done_num = 0
+        #print('------------------------')   
+        #print('initial state:', converted_obs)
+        #print('action', action)
+        #print('new state: ', converted_new_obs)
         buffer.append(converted_obs, action_index, reward, converted_new_obs, done_num)
         return done
         
@@ -163,8 +181,8 @@ class DiscreteSAC:
         q1_loss, q2_loss = self.calc_q_loss(
             states, actions, rewards, new_states, dones
             )
-        q1_loss = q1_loss.requires_grad_(True)
-        q2_loss = q2_loss.requires_grad_(True)
+        #q1_loss = q1_loss.requires_grad_(True)
+        #q2_loss = q2_loss.requires_grad_(True)
         self.take_optimization_step(
             self.q1_optimizer, self.actor_critic.q1, q1_loss, self.clipping_norm
             )
@@ -181,21 +199,27 @@ class DiscreteSAC:
             )
         
         # Freezing q nets while updating policy net
-        for p in self.q_params:
+        #for p in self.q_params:
+         #   p.requires_grad = False
+        for p in self.actor_critic.q1.parameters():
             p.requires_grad = False
-        
+        for p in self.actor_critic.q2.parameters():
+            p.requires_grad = False
         # Updating policy
         policy_loss = self.calc_policy_loss(states)
-        policy_loss = policy_loss.clone().detach().requires_grad_(True)
+        #policy_loss = policy_loss.clone().detach().requires_grad_(True)
         self.take_optimization_step(
             self.pi_optimizer, self.actor_critic.policy, 
             policy_loss, self.clipping_norm
             )
         
-        # Unfreezing q nets while updating policy net
-        for p in self.q_params:
+        # Unfreezing q nets after updating policy net
+        #for p in self.q_params:
+         #   p.requires_grad = True
+        for p in self.actor_critic.q1.parameters():
             p.requires_grad = True
-        
+        for p in self.actor_critic.q2.parameters():
+            p.requires_grad = True
         # Perform learning step on entropy tuning parameter and update it
         if self.automatic_entropy_tuning:
             # Adapted from
@@ -272,13 +296,12 @@ class DiscreteSAC:
             self.alpha = self.log_alpha.exp()
 
     def take_optimization_step(self, optimizer, network, loss,
-                               clipping_norm=3):
-        #optimizer.zero_grad()
-        #calculate_loss
+                               clipping_norm=None):
+        optimizer.zero_grad()
         loss.backward()
         if clipping_norm is not None:
-            for net in network:
-                torch.nn.utils.clip_grad_norm(net.parameters(), clipping_norm)
+            for param in network.parameters():
+                torch.nn.utils.clip_grad_norm(param, clipping_norm)
         optimizer.step()
         
         
@@ -323,12 +346,11 @@ class DiscreteSAC:
         # Estimate q values with q net and gather values
         # The qnets ouput a Q value for each action, so we use gather() to gather
         # the values corresponding to the action indices of the batch.
+        action_batch.requires_grad_(True)
         # Explanation of gather() https://medium.com/analytics-vidhya/understanding-indexing-with-pytorch-gather-33717a84ebc4
         q1 = self.actor_critic.q1(state_batch).gather(1, action_batch.unsqueeze(-1).long()) 
         q2 = self.actor_critic.q2(state_batch).gather(1, action_batch.unsqueeze(-1).long())
-        #print("q1 shape", q1.shape)
-        #q1_loss = F.mse_loss(q1[:,0], target_q_value.squeeze())
-        #q2_loss = F.mse_loss(q2[:,0], target_q_value.squeeze())
+
         q1_loss = F.mse_loss(q1, target_q_value)
         q2_loss = F.mse_loss(q2, target_q_value)
         return q1_loss, q2_loss
@@ -347,13 +369,14 @@ class DiscreteSAC:
         Calculates the loss for the actor. This loss includes the additional
         entropy term
         """
-
+        state_batch.requires_grad_(True)
         action_probabilities = self.actor_critic.policy(state_batch)
         log_action_probabilities = self.calc_log_prob(action_probabilities)
         
         # Estimate q values and get min to be used in inside_term
-        q1 = self.actor_critic.q1(state_batch)
-        q2 = self.actor_critic.q2(state_batch)
+        with torch.no_grad():
+            q1 = self.actor_critic.q1(state_batch)
+            q2 = self.actor_critic.q2(state_batch)
 
         min_q = torch.min(q1,q2)
         
@@ -364,14 +387,14 @@ class DiscreteSAC:
         return policy_loss
     
     
-    def polyak_target_update(self, local_model, target_model):
-        """ 
-            We're not using this method so we can get rid of it if the soft_update works
-        """
-        with torch.no_grad():
-            for local_param, target_param in zip(self.actor_critic.parameters(), self.target_actor_critic.parameters()):
-                target_param.data.mul_(self.polyak)
-                target_param.data.add_((1 - self.polyak) * local_param.data)    
+    #def polyak_target_update(self, local_model, target_model):
+     #   """ 
+      #      We're not using this method so we can get rid of it if the soft_update works
+       # """
+        #with torch.no_grad():
+         #   for local_param, target_param in zip(self.actor_critic.parameters(), self.target_actor_critic.parameters()):
+         #       target_param.data.mul_(self.polyak)
+          #      target_param.data.add_((1 - self.polyak) * local_param.data)    
     
     
     def calculate_entropy_tuning_loss(self, log_pi):

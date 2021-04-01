@@ -18,14 +18,14 @@ class Environment:
     
     
     
-    def __init__(self, environment_params, obs_size=5):
+    def __init__(self, environment_params):#, obs_size=5):
         
         if environment_params['N'] < 4:
             raise Exception('N must be larger than 3')
         
         self.map = torch.zeros((environment_params['N'],environment_params['N']))
         self.size = environment_params['N']
-        self.obs_size = obs_size
+        #self.obs_size = obs_size
         
         # creating borders
         self.map[0,:] = 1
@@ -33,8 +33,8 @@ class Environment:
         self.map[:,0] = 1
         self.map[:,-1] = 1
         
-        self.britney_start_location = np.array([2,2])
-        self.guard_start_location = np.array([1,1])
+        self.britney_start_location = None
+        self.guard_start_location = None
         
         self.guard_location = self.britney_start_location 
         self.britney_location = self.guard_start_location
@@ -262,6 +262,7 @@ class Environment:
         # onto an obstacle
         britney_neighbors = list(self.get_neighbors(self.britney_location))
         britney_neighbors = [x for x in britney_neighbors if self.map[x[0]][x[1]] == 0]
+        #self.guard_start_location =np.array([2,2])
         self.guard_start_location = np.asarray(random.choice(britney_neighbors))
         self.guard_location = self.guard_start_location
         # Setting car location 

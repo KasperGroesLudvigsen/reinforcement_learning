@@ -30,11 +30,12 @@ class PiNet(nn.Module):
         super().__init__()
         
         layer_sizes = [num_obs] + list(hidden_sizes) + [num_actions]
-        self.q = utils.mlp(sizes=layer_sizes, activation=activation_func, output_activation = nn.Softmax)
+        self.q = utils.mlp(sizes=layer_sizes, activation=activation_func)#, output_activation = nn.Softmax)
         self.checkpoint_file = os.path.join(checkpoint_dir, name+"_sac.pt")
         
     def forward(self, observation):
         q = self.q(observation)
+        q = F.softmax(q, dim=1)
         q = q.squeeze(-1)
         return q
     
