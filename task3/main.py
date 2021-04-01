@@ -35,20 +35,18 @@ buffer_params = {
 ac_params = {
     'num_obs' : 6,
     'num_actions' : 10,
-    'hidden_sizes' : [32,32],
+    'hidden_sizes' : [256,256],
     'activation_func': nn.ReLU
      }
 
 params = {
-    'lr': 0.0001,
-    'alpha' : 0.99,
+    'lr': 0.0003,
     'gamma': 0.9,
-    'batch_size': 256,
+    'batch_size': 64,
     'polyak' : 0.05,
-    'clipping_norm': 2,
-    'tune_temperature' : 0.5,
+    'clipping_norm': 1,
     "automatic_entropy_tuning":False,
-    "entropy_alpha":0.1
+    "entropy_alpha":0.3
     }
 
 ################# params ######################
@@ -80,12 +78,14 @@ environment.display()
 
 def learning_environment(seed, random_episodes, number_of_episodes):
     training_scores = []
-    
+    validation_scores = []
+    #rewards = []
     #fill up buffer
     
     for _ in range(seed):
         done = False
         environment.reset()
+        #environment.respawn()
         while not done:
             done = DSAC.environment_step(environment, buffer, buffer_fill=True)
     
@@ -93,9 +93,10 @@ def learning_environment(seed, random_episodes, number_of_episodes):
     for _ in range(random_episodes):
         done = False
         environment.reset()
+        #environment.respawn()
         while not done:
             done = DSAC.environment_step(environment, buffer, buffer_fill=True)
-            DSAC.gradient_step_experiment(buffer, params['batch_size'])
+            DSAC.gradient_step(buffer, params['batch_size'])
             #DSAC.gradient_step_experiment(buffer, params['batch_size'])
             #DSAC.gradient_step_experiment(buffer, params['batch_size'])
     ran_out_of_time = 0
@@ -104,23 +105,48 @@ def learning_environment(seed, random_episodes, number_of_episodes):
     for _ in range(number_of_episodes):
         print('Starting Episode: ', _)
         environment.reset()
+        #environment.respawn()
         
         done = False
         while not done:
             done = DSAC.environment_step(environment, buffer, buffer_fill = False)
-            #environment.display()
-            DSAC.gradient_step_experiment(buffer, params['batch_size'])
+            environment.display()
+            DSAC.gradient_step(buffer, params['batch_size'])
             #DSAC.gradient_step_experiment(buffer, params['batch_size'])
             #DSAC.gradient_step_experiment(buffer, params['batch_size'])
             # add some visual stuff
             
         training_scores.append(environment.time_elapsed)
+        #rewards.append()
         if environment.time_elapsed == environment.time_limit:
             ran_out_of_time += 1
         else:
             success +=1
+            
+        if _ % 10 ==0:
+            print('Strarting Valdiation loop')
+            DSAC.train_mode = False
+            environment.reset()
+            #environment.respawn()
+        
+            done = False
+            validation_episode_length = 0
+            while not done:
+                validation_episode_length += 1
+                done = DSAC.environment_step(environment, buffer, buffer_fill = False)
+            validation_scores.append(validation_episode_length)
+            DSAC.train_mode = True
+                
+            
     plt.plot(training_scores)
     plt.title('Training Scores')
+    plt.xlabel('Episode')
+    plt.ylabel('Episode length')
+    plt.grid(True)
+    plt.show()
+    
+    plt.plot(validation_scores)
+    plt.title('Validation Scores')
     plt.xlabel('Episode')
     plt.ylabel('Episode length')
     plt.grid(True)
@@ -130,8 +156,11 @@ def learning_environment(seed, random_episodes, number_of_episodes):
     print("successes: {}".format(success))       
 
 #learning_environment(1)
-#learning_environment(1000, 200)
-learning_environment(1,0, 1000)
+#DSAC.alpha=0
+learning_environment(1000,0,1000)
+#learning_environment(1000,0,100)
+#DSAC.train_mode = False
+#learning_environment(0,0, 100)
 #SAC.alpha = 0.
 
 
