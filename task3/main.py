@@ -1,4 +1,5 @@
-import numpy as np 
+import numpy as np
+from matplotlib import pyplot as plt
 
 import task3.utils as utils
 
@@ -22,8 +23,8 @@ import task3.Discrete_SAC as SAC
 ####################### hyperparams #########################
 
 environment_params = {
-    'N' : 10,
-    'stumble_prob' : 1
+    'N' : 6,
+    'stumble_prob' : 0
     }
 
 buffer_params = {
@@ -36,18 +37,18 @@ ac_params = {
     'num_actions' : 10,
     'hidden_sizes' : [32,32],
     'activation_func': nn.ReLU
-    }
+     }
 
 params = {
     'lr': 0.0001,
     'alpha' : 0.99,
-    'gamma': 0.99,
+    'gamma': 0.9,
     'batch_size': 256,
-    'polyak' : 0.5,
+    'polyak' : 0.05,
     'clipping_norm': 2,
     'tune_temperature' : 0.5,
     "automatic_entropy_tuning":False,
-    "entropy_alpha":0.0
+    "entropy_alpha":0.1
     }
 
 ################# params ######################
@@ -78,7 +79,8 @@ environment.display()
 
 
 def learning_environment(seed, random_episodes, number_of_episodes):
-
+    training_scores = []
+    
     #fill up buffer
     
     for _ in range(seed):
@@ -99,27 +101,37 @@ def learning_environment(seed, random_episodes, number_of_episodes):
     ran_out_of_time = 0
     success = 0
         
-    for _ in range(number_of_episodes): 
+    for _ in range(number_of_episodes):
+        print('Starting Episode: ', _)
         environment.reset()
         
         done = False
         while not done:
             done = DSAC.environment_step(environment, buffer, buffer_fill = False)
             #environment.display()
-            #DSAC.gradient_step_experiment(buffer, params['batch_size'])
             DSAC.gradient_step_experiment(buffer, params['batch_size'])
             #DSAC.gradient_step_experiment(buffer, params['batch_size'])
+            #DSAC.gradient_step_experiment(buffer, params['batch_size'])
             # add some visual stuff
+            
+        training_scores.append(environment.time_elapsed)
         if environment.time_elapsed == environment.time_limit:
             ran_out_of_time += 1
         else:
             success +=1
+    plt.plot(training_scores)
+    plt.title('Training Scores')
+    plt.xlabel('Episode')
+    plt.ylabel('Episode length')
+    plt.grid(True)
+    plt.show()
+    
     print("times ran out: {}".format(ran_out_of_time))
     print("successes: {}".format(success))       
 
 #learning_environment(1)
 #learning_environment(1000, 200)
-learning_environment(0,0, 1)
+learning_environment(1,0, 1000)
 #SAC.alpha = 0.
 
 

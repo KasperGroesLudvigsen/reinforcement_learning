@@ -252,9 +252,9 @@ class Environment:
         
         """
         self.time_elapsed = 0
-        self.car_location = np.array([3,3])
+        self.car_location = np.array([4,4])
         # Setting Britney's location
-        self.britney_start_location = np.array([2,2])#self.get_empty_cells(1)
+        self.britney_start_location = np.array([3,3])#self.get_empty_cells(1)
         #self.britney_start_location = np.array([2,2])
         self.britney_location = self.britney_start_location
         
@@ -262,7 +262,7 @@ class Environment:
         # onto an obstacle
         britney_neighbors = list(self.get_neighbors(self.britney_location))
         britney_neighbors = [x for x in britney_neighbors if self.map[x[0]][x[1]] == 0]
-        self.guard_start_location = np.array([1,1])#np.asarray(random.choice(britney_neighbors))
+        self.guard_start_location = np.asarray(random.choice(britney_neighbors))
         self.guard_location = self.guard_start_location
         # Setting car location 
         #self.car_location = self.get_empty_cells(1)

@@ -45,10 +45,10 @@ class DiscreteSAC:
     """
     def __init__(self, ac_params, params):
         
-        #if torch.cuda.is_available():
-        #    self.device = torch.cuda.device("cuda")
-        #else: 
-        #self.device = torch.cuda.device("cpu")
+        if torch.cuda.is_available():
+            self.device = torch.cuda.device("cuda")
+        else: 
+            self.device = torch.device("cpu")
 
         # Hyperparameters
         self.alpha = params["alpha"]
@@ -105,19 +105,28 @@ class DiscreteSAC:
         if buffer_fill == False:
             with torch.no_grad():
                 action_distribuion = self.actor_critic.policy(converted_obs)
-                print(action_distribuion)
-            action_index = np.argmax(np.array(action_distribuion.squeeze()))
+                action_distribuion = action_distribuion.flatten().tolist()
+                #print('Action dis: ', action_distribuion)
+                action_distribuion = [x / sum(action_distribuion) for x in action_distribuion]
+                action = np.random.choice(actions, p = action_distribuion)
+                #print(action)
             
         if buffer_fill == True:
             greedy_prob = random.random() # this should be between 0 and 1, 
             if greedy_prob < 1.0:
                 action_index = random.randint(0,9)
+                action = actions[action_index]
             else:
                 with torch.no_grad():
+                    #print('Action selection')
                     action_distribuion = self.actor_critic.policy(converted_obs)
-                action_index = np.argmax(np.array(action_distribuion.squeeze()))
-            
-        action = actions[action_index]  
+                    action_distribuion = action_distribuion.flatten().tolist()
+                    #print('Action dis: ', action_distribuion)
+                    action_distribuion = [x / sum(action_distribuion) for x in action_distribuion]
+                    action = np.random.choice(actions, p = action_distribuion)
+        
+        
+        action_index = actions.index(action)
         
         # get reward, next state, done from environment by taking action in the world.
         _, reward, done = environment.take_action_guard(
