@@ -438,7 +438,7 @@ def test_get_surroundings():
         assert i == 1
         
         
-        guard_location = np.array([2,2])
+    guard_location = np.array([17,17])
     obs_size = env.size//2 # the agent sees 1/4 of the env
     
     surroundings = get_surroundings(guard_location=guard_location, 
@@ -449,7 +449,7 @@ def test_get_surroundings():
     assert surroundings.shape == (11, 11)
     # Asserting that all values in first tensor is 1s because the first
     # tensor represents the border of the env
-    for i in surroundings[0]:
+    for i in surroundings[-1]:
         assert i == 1
 
     guard_location = np.array([10,10])
@@ -468,6 +468,7 @@ def test_get_surroundings():
     
     
     
+
 
 
 
