@@ -8,6 +8,7 @@ import task1.assassinworld as assworld
 import task1.asspapsworld as asspap
 import numpy as np
 from copy import copy
+import math 
 
 env_params = {
     'N' : 20,
@@ -390,11 +391,83 @@ def test_agent_blocks_photo():
 test_agent_blocks_photo()    
 
 
-  
+env.map
+
+        
+def get_surroundings(guard_location, env_map, env_size, obs_size):
+    lower_bound = math.floor(obs_size / 2)
+    upper_bound = lower_bound + 1 # +1 because slicing np.arrays is not inclusive
     
+    row_start, row_end = guard_location[0] -lower_bound, guard_location[0] +upper_bound
+    col_start, col_end = guard_location[1] -lower_bound, guard_location[1] +upper_bound
+    
+    if row_start < 0:
+        diff = abs(row_start)
+        row_start = 0
+        row_end += diff
+    if row_end > env_size:
+        diff = row_end-env_size
+        row_end = env_size
+        row_start -= diff
+    if col_start < 0:
+        diff = abs(col_start)
+        col_start = 0
+        col_end += diff
+    if col_end > env_size:
+        diff = col_end-env_size
+        col_end = env_size
+        col_start -= diff
+        
+    surroundings = env_map[row_start:row_end, col_start:col_end]
+    
+    return surroundings
 
 
+def test_get_surroundings():
+    guard_location = np.array([2,2])
+    obs_size = env.size//2 # the agent sees 1/4 of the env
+    
+    surroundings = get_surroundings(guard_location=guard_location, 
+                                    env_map=env.map,
+                                    env_size=env.size,
+                                    obs_size=obs_size)
+    assert surroundings.shape == (11, 11)
+    # Asserting that all values in first tensor is 1s because the first
+    # tensor represents the border of the env
+    for i in surroundings[0]:
+        assert i == 1
+        
+        
+        guard_location = np.array([2,2])
+    obs_size = env.size//2 # the agent sees 1/4 of the env
+    
+    surroundings = get_surroundings(guard_location=guard_location, 
+                                    env_map=env.map,
+                                    env_size=env.size,
+                                    obs_size=obs_size)
+    
+    assert surroundings.shape == (11, 11)
+    # Asserting that all values in first tensor is 1s because the first
+    # tensor represents the border of the env
+    for i in surroundings[0]:
+        assert i == 1
 
+    guard_location = np.array([10,10])
+    obs_size = env.size//2 # the agent sees 1/4 of the env
+    
+    surroundings = get_surroundings(guard_location=guard_location, 
+                                    env_map=env.map,
+                                    env_size=env.size,
+                                    obs_size=obs_size)
+    
+    assert surroundings.shape == (11, 11)
+    # Asserting that all values in first tensor is 0s
+    for i in surroundings[0]:
+        assert i == 0        
+    
+    
+    
+    
 
 
 
