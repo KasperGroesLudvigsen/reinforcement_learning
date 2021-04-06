@@ -6,7 +6,7 @@ Created on Mon Mar 15 18:50:50 2021
 """
 import numpy as np 
 
-import utils.utils as utils
+import task3.utils as utils
 
 #import reinforcement_learning.utils.utils as utils
 
@@ -30,17 +30,17 @@ import task3.Discrete_SAC as SAC
 
 unittest_environment_params = {
     'N' : 10,
-    'stumble_prob' : 0.3
+    'stumble_prob' : 0.4
     }
 
 unittest_buffer_params = {
-    'obs_dims': (1,13),
-    'num_actions': 9
+    'obs_dims': (1,6),
+    'num_actions': 10
     }
 
 unittest_ac_params = {
-    'num_obs' : 13,
-    'num_actions' : 9,
+    'num_obs' : 6,
+    'num_actions' : 10,
     'hidden_sizes' : [100,100],
     'activation_func': nn.ReLU
     }
@@ -54,7 +54,7 @@ unittest_params = {
     'clipping_norm': None,
     'tune_temperature' : 0.3,
     "automatic_entropy_tuning":False,
-    "entropy_alpha":0.5
+    "entropy_alpha":0.0
     }
 
 ################### classes ##################################
@@ -74,6 +74,7 @@ unittest_buffer = buf.ReplayBuffer(
 unittest_DSAC = sac.DiscreteSAC(unittest_ac_params, unittest_params)
 
 unittest_environment = bw.Environment(unittest_environment_params)
+unittest_environment.reset()
 #################### unittests ###############################
 
 def unittest_convert_obs():
@@ -83,9 +84,9 @@ def unittest_convert_obs():
     print(observation['relative_coordinates_britney'])
     converted_obs = utils.convert_state(observation)
     converted_obs = converted_obs.squeeze()
-    print(converted_obs.shape)
-    some_zeros = torch.zeros(13)
-    print(some_zeros[0])
+    print(converted_obs)
+    #some_zeros = torch.zeros(13)
+    #print(some_zeros[0])
 
 unittest_convert_obs()
 
@@ -94,11 +95,13 @@ def unittest_actor_critic():
     unittest_environment.reset()
     observation = unittest_environment.calculate_observations()
     converted_obs = utils.convert_state(observation)
+    print(converted_obs)
     converted_obs = converted_obs.squeeze()
+    converted_obs = torch.tensor([0.5,0.5, 0.6, 0.7, 0.1, 0.1])
     with torch.no_grad():
         output = unittest_ac.policy(converted_obs)
-    assert len(output) == unittest_ac_params['num_actions']
-    action = np.max(np.array(output))
+    #assert len(output) == unittest_ac_params['num_actions']
+    action = np.argmax(np.array(output))
     print(action)
     print(np.array(output))
     output_q1 = unittest_ac.q1(converted_obs)
@@ -118,10 +121,23 @@ unittest_actor_critic()
     
 def unittest_environment_step():
     unittest_environment.reset()
+    observation = unittest_environment.calculate_observations()
+    converted_obs = utils.convert_state(observation)
+    print(converted_obs)
+    hughs_unittest_buffer = buf.ReplayBuffer(
+        unittest_buffer_params['obs_dims'],
+        unittest_buffer_params['num_actions'], 
+        memory_size=100
+        )
+    
+    for _ in range(50):
+        unittest_DSAC.environment_step(unittest_environment, hughs_unittest_buffer, buffer_fill = False)
+    
     #print(len(unittest_buffer.reward_memory))
-    unittest_DSAC.environment_step(unittest_environment, unittest_buffer)
-    #len(unittest_buffer.reward_memory)
-    print(unittest_buffer.reward_memory[0])
+    #unittest_DSAC.environment_step(unittest_environment, unittest_buffer, buffer_fill=False)
+    observation = unittest_environment.calculate_observations()
+    converted_obs = utils.convert_state(observation)
+    print(converted_obs)
     
 unittest_environment_step()
 
@@ -158,14 +174,14 @@ unittest_buffer()
 def hughs_much_better_unittest_buffer():
     unittest_environment.reset()
     
-    unittest_buffer = buf.ReplayBuffer(
+    hughs_unittest_buffer = buf.ReplayBuffer(
         unittest_buffer_params['obs_dims'],
         unittest_buffer_params['num_actions'], 
         memory_size=100
         )
     
     for _ in range(50):
-        unittest_DSAC.environment_step(unittest_environment, hughs_unittest_buffer)
+        unittest_DSAC.environment_step(unittest_environment, hughs_unittest_buffer, buffer_fill = False)
     
     states, new_states, actions, rewards, dones = hughs_unittest_buffer.sample(30)
     assert len(states) == 30
@@ -174,9 +190,9 @@ def hughs_much_better_unittest_buffer():
     assert len(rewards) == 30
     assert len(dones) == 30
     
-    q1 = unittest_DSAC.actor_critic.q1(states.squeeze()) 
+    #q1 = unittest_DSAC.actor_critic.q1(states.squeeze()) 
     #print("q1 before gathering{}:".format(q1))
-    q1 = q1.gather(1, actions.long())
+    #q1 = q1.gather(1, actions.long())
     #print("q1 after gathering{}:".format(q1[:,0]))
     #print(states.squeeze())
     #print(new_states.shape)
@@ -217,7 +233,7 @@ unittest_convert_state()
 
 def unittest_calculate_policy_loss():
     unittest_environment.reset()
-
+    original_policy_model = deepcopy(unittest_DSAC.actor_critic.policy)
     hughs_unittest_buffer = buf.ReplayBuffer(
         unittest_buffer_params['obs_dims'],
         unittest_buffer_params['num_actions'],
@@ -225,22 +241,30 @@ def unittest_calculate_policy_loss():
         )
 
     for _ in range(50):
-        unittest_DSAC.environment_step(unittest_environment, hughs_unittest_buffer)
+        unittest_DSAC.environment_step(unittest_environment, hughs_unittest_buffer, buffer_fill = False)
 
     states, new_states, actions, rewards, dones = hughs_unittest_buffer.sample(30)
-
-
+    
+    unittest_DSAC.pi_optimizer.zero_grad()
     policy_loss = unittest_DSAC.calc_policy_loss(states)
-
-
     print(policy_loss)
+    policy_loss.backward()
+    unittest_DSAC.pi_optimizer.step()
+
+    for new_param, original_param in zip(unittest_DSAC.actor_critic.policy.parameters(), original_policy_model.parameters()):
+        print("new_param",new_param)
+        print("original param", original_param)
 
 unittest_calculate_policy_loss()
 
 
 def unittest_calculate_q_loss():
     unittest_environment.reset()
-
+    
+    original_q1_model = deepcopy(unittest_DSAC.actor_critic.q1)
+    original_q2_model = deepcopy(unittest_DSAC.actor_critic.q2)
+    original_policy_model = deepcopy(unittest_DSAC.actor_critic.policy)
+    
     hughs_unittest_buffer = buf.ReplayBuffer(
         unittest_buffer_params['obs_dims'],
         unittest_buffer_params['num_actions'],
@@ -248,7 +272,7 @@ def unittest_calculate_q_loss():
         )
     
     for _ in range(50):
-        unittest_DSAC.environment_step(unittest_environment, hughs_unittest_buffer)
+        unittest_DSAC.environment_step(unittest_environment, hughs_unittest_buffer, buffer_fill=False)
 
     states, new_states, actions, rewards, dones = hughs_unittest_buffer.sample(30)    
     #print(states.squeeze().shape)
@@ -260,10 +284,16 @@ def unittest_calculate_q_loss():
     #q2 = unittest_ac.policy(new_states)
     #print(q1.shape)
     #print(q2.shape)
+    unittest_DSAC.q1_optimizer.zero_grad()
+    unittest_DSAC.q2_optimizer.zero_grad()
     q1_loss, q2_loss = unittest_DSAC.calc_q_loss(states, actions, rewards, new_states, dones)
-
-    print(q1_loss)
-    print(q2_loss)
+    q1_loss.backward()
+    q2_loss.backward()
+    unittest_DSAC.q1_optimizer.step()
+    unittest_DSAC.q2_optimizer.step()
+    for new_param, original_param in zip(unittest_DSAC.actor_critic.q2.parameters(), original_q2_model.parameters()):
+        print("new_param",new_param)
+        print("original param", original_param)
 
 unittest_calculate_q_loss()
 
@@ -304,108 +334,6 @@ def unittest_take_optimization_step():
             assert not equal
 
 
-    ###############################################################
-    # Below is garbage
-    """
-    dsac_ac_copy = deepcopy(dsac.actor_critic)
-    for p in dsac_ac_copy.parameters():
-        p.requires_grad = False
-    q1_state_dict = dsac_ac_copy.q1.state_dict()
-    q2_state_dict = dsac_ac_copy.q2.state_dict()
-    policy_state_dict = dsac_ac_copy.policy.state_dict()
-
-    # Creating loss
-    #mse = nn.MSELoss()
-    #input = torch.randn(3, 5, requires_grad=True)
-    #target = torch.randn(3, 5)
-    #loss = mse(input, target)
-
-
-    for _ in range(50):
-        unittest_DSAC.environment_step(unittest_environment, unittest_buffer)
-
-    states, new_states, actions, rewards, dones = unittest_buffer.sample(30)    
-    states = states.squeeze()
-    new_states = new_states.squeeze()
-    q1_loss, q2_loss = unittest_DSAC.calc_q_loss(states, actions, rewards, new_states, dones)
-
-
-
-    # For easy looping over keys in dict
-    dict_keys = list(q1_state_dict.keys())
-
-    # Taking optimization step for all three nets / optimizers
-    # Ain't no half stepping
-    for _ in range(1000):
-
-        states, new_states, actions, rewards, dones = unittest_buffer.sample(30)    
-        states = states.squeeze()
-        new_states = new_states.squeeze()
-        q1_loss, q2_loss = unittest_DSAC.calc_q_loss(states, actions, rewards, new_states, dones)
-
-        unittest_DSAC.take_optimization_step(
-            optimizer=unittest_DSAC.q1_optimizer,
-            network=unittest_DSAC.actor_critic.q1,
-            loss=q1_loss
-            )
-
-    #unittest_DSAC.take_optimization_step(
-    #    optimizer=unittest_DSAC.q2_optimizer,
-    #    network=unittest_ac.q2,
-    #    loss=loss
-    #    )
-
-    #unittest_DSAC.take_optimization_step(
-    #    optimizer=unittest_DSAC.pi_optimizer,
-    #    network=unittest_ac.policy,
-    #    loss=loss
-    #    )
-
-    dsac.q1_optimizer.param_groups
-
-
-    new_q1_state_dict = dsac.actor_critic.q1.state_dict()
-    for key in dict_keys:
-        new_tensor = new_q1_state_dict[key]
-        original_tensor = q1_state_dict[key]
-        print(key)
-
-        assert len(new_tensor) == len(original_tensor)
-
-
-        for i in range(len(new_tensor)):
-            a = new_tensor[i]
-            b = original_tensor[i]
-            equal = all(a.eq(b))
-            if equal:
-
-                print(i)
-
-            #assert not equal
-
-    print("HERE")
-    # Asserting that parameters are not the same after step
-    for key in range(len(dict_keys)):
-
-        for i in range(len(q1_state_dict[dict_keys[key]])):   
-            a = q1_state_dict[dict_keys[key]][i]
-            b = unittest_DSAC.actor_critic.q1.state_dict()[dict_keys[key]][i]
-            equal = all(a.eq(b))
-            print(equal)
-            assert not equal
-
-        for i in len(q2_state_dict[dict_keys[key]]):   
-            a = q2_state_dict[dict_keys[i]]
-            b = unittest_DSAC.actor_critic.q2.state_dict()[dict_keys[key]][i]
-            equal = all(a.eq(b))
-            #assert not equal
-
-        for i in len(policy_state_dict[dict_keys[key]]):   
-            a = policy_state_dict[dict_keys[i]]
-            b = unittest_DSAC.actor_critic.policy.state_dict()[dict_keys[key]][i]
-            equal = all(a.eq(b))
-            #assert not equal
-    """
 unittest_take_optimization_step()
 
 
@@ -420,7 +348,7 @@ def unittest_gradient():
         )
     
     for _ in range(50):
-        dont = unittest_DSAC.environment_step(unittest_environment, hughs_unittest_buffer)
+        dont = unittest_DSAC.environment_step(unittest_environment, hughs_unittest_buffer,buffer_fill = False)
     
     unittest_DSAC.gradient_step(hughs_unittest_buffer, 30)
 
@@ -428,44 +356,6 @@ unittest_gradient()
 
 
 
-
-    states = states.squeeze()
-    new_states = new_states.squeeze()
-
-    q1_loss, q2_loss = unittest_DSAC.calc_q_loss(states, actions, rewards, new_states, dones)
-    #print(q1_loss)
-    #q1_loss = torch.tensor(q1_loss, requires_grad = True)
-    q1_loss = q1_loss.clone().detach().requires_grad_(True)
-    q2_loss = q2_loss.clone().detach().requires_grad_(True)
-    #policy_loss = unittest_DSAC.calc_policy_loss(states)
-    #policy_loss = torch.tensor([policy_loss], requires_grad = True)
-    #print(policy_loss)
-    unittest_DSAC.take_optimization_step(
-            unittest_DSAC.q1_optimizer, unittest_DSAC.actor_critic.q1, q1_loss, unittest_DSAC.clipping_norm
-            )
-    unittest_DSAC.take_optimization_step(
-            unittest_DSAC.q2_optimizer, unittest_DSAC.actor_critic.q2, q2_loss, unittest_DSAC.clipping_norm
-            )
-    
-    for p in unittest_DSAC.q_params:
-            p.requires_grad = False
-        
-    # Updating policy
-    policy_loss = unittest_DSAC.calc_policy_loss(states)
-    policy_loss = policy_loss.clone().detach().requires_grad_(True)
-    #policy_loss = torch.tensor([policy_loss], requires_grad = True)
-    unittest_DSAC.take_optimization_step(
-        unittest_DSAC.pi_optimizer, unittest_DSAC.actor_critic.policy, 
-        policy_loss, unittest_DSAC.clipping_norm
-        )
-    
-    #Unfreezing q nets while updating policy net
-    for p in unittest_DSAC.q_params:
-        p.requires_grad = True
-        
-    
-    
-unittest_take_optimization_step()
     
     
     

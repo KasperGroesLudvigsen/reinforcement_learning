@@ -18,14 +18,14 @@ class Environment:
     
     
     
-    def __init__(self, environment_params, obs_size=5):
+    def __init__(self, environment_params):#, obs_size=5):
         
         if environment_params['N'] < 4:
             raise Exception('N must be larger than 3')
         
         self.map = torch.zeros((environment_params['N'],environment_params['N']))
         self.size = environment_params['N']
-        self.obs_size = obs_size
+        #self.obs_size = obs_size
         
         # creating borders
         self.map[0,:] = 1
@@ -33,8 +33,8 @@ class Environment:
         self.map[:,0] = 1
         self.map[:,-1] = 1
         
-        self.britney_start_location = np.array([2,2])
-        self.guard_start_location = np.array([1,1])
+        self.britney_start_location = None
+        self.guard_start_location = None
         
         self.guard_location = self.britney_start_location 
         self.britney_location = self.guard_start_location
@@ -81,7 +81,7 @@ class Environment:
         
     def take_action_guard(self, guard_location, britney_location, action):
         # At every timestep, the agent receives a negative reward
-        reward = -1
+        reward = float(-1)
         self.time_elapsed += 1        
         
         if action == "push":
@@ -93,8 +93,8 @@ class Environment:
         else:
             # agent only moves into next position if it is open space
             #if self.is_empty(next_position):
-            guard_location = self.get_next_position(action, guard_location)
-
+            guard_location, bump = self.get_next_position(action, guard_location)
+            reward -= float(bump)
         britney_location = self.britney_stumbles(self.stumple_prob, britney_location)
     
         done = False
@@ -169,7 +169,8 @@ class Environment:
         """ For every t, there is a probability that Britney stumbles to a new location """
         if stumble_probability >= random.random():
             action = random.choice(self.britney_actions)
-            return self.get_next_position(action, britney_location)
+            bl, _ = self.get_next_position(action, britney_location)
+            return bl
         return britney_location
         
             
@@ -182,37 +183,37 @@ class Environment:
         if action == 'N': # North, i.e. up
             next_location = np.array((current_location[0] - 1, current_location[1]))
             if self.is_empty(next_location):
-                return next_location
+                return next_location, 0    
         if action == 'S': # South, i.e. down
             next_location = np.array((current_location[0] + 1, current_location[1] ))
             if self.is_empty(next_location):
-                return next_location
+                return next_location, 0    
         if action == 'W': # West, i.e. left
             next_location = np.array((current_location[0] , current_location[1] - 1 ))
             if self.is_empty(next_location):
-                return next_location
+                return next_location, 0    
         if action == 'E': # East, i.e. right
             next_location = np.array((current_location[0] , current_location[1] + 1))
             if self.is_empty(next_location):
-                return next_location
+                return next_location, 0    
         if action == 'NE': # North east
             next_location = np.array((current_location[0] - 1, current_location[1] + 1))
             if self.is_empty(next_location):
-                return next_location
+                return next_location, 0    
         if action == "SE": # South east
             next_location = np.array((current_location[0] + 1, current_location[1] + 1))
             if self.is_empty(next_location):
-                return next_location
+                return next_location, 0    
         if action == "SW": # South west
             next_location = np.array((current_location[0] + 1, current_location[1] - 1))
             if self.is_empty(next_location):
-                return next_location
+                return next_location, 0    
         if action == "NW": # North west
             next_location = np.array((current_location[0] - 1, current_location[1] -1))
             if self.is_empty(next_location):
-                return next_location        
-
-        return current_location
+                return next_location, 0        
+            
+        return current_location, 3
         
     def display(self):
         # Lifted from Michael's code
@@ -251,9 +252,9 @@ class Environment:
         
         """
         self.time_elapsed = 0
-        
+        self.car_location = np.array([4,4])
         # Setting Britney's location
-        self.britney_start_location = self.get_empty_cells(1)
+        self.britney_start_location = np.array([3,3])#self.get_empty_cells(1)
         #self.britney_start_location = np.array([2,2])
         self.britney_location = self.britney_start_location
         
@@ -261,10 +262,11 @@ class Environment:
         # onto an obstacle
         britney_neighbors = list(self.get_neighbors(self.britney_location))
         britney_neighbors = [x for x in britney_neighbors if self.map[x[0]][x[1]] == 0]
+        #self.guard_start_location =np.array([2,2])
         self.guard_start_location = np.asarray(random.choice(britney_neighbors))
         self.guard_location = self.guard_start_location
         # Setting car location 
-        self.car_location = self.get_empty_cells(1)
+        #self.car_location = self.get_empty_cells(1)
         #self.car_location = np.array([self.size-3,self.size-3])
         
         # Calculate observations
@@ -291,7 +293,7 @@ class Environment:
         upper_bound = lower_bound + 1 # +1 because slicing np.arrays is not inclusive
         
         
-        relative_coordinates_car = self.car_location - self.guard_location
+        relative_coordinates_car = self.car_location - self.britney_location
         relative_coordinates_britney = self.britney_location - self.guard_location
         
         x1, y1 = self.guard_location[0] -lower_bound, self.guard_location[0] +upper_bound
@@ -306,9 +308,12 @@ class Environment:
         
         obs = {'relative_coordinates_car': relative_coordinates_car,
                'relative_coordinates_britney' : relative_coordinates_britney,
-               'surroundings': surroundings}
-        
-        return obs
+               }#'surroundings': surroundings}
+        alternate_obd = {'relative_coordinates_car':self.guard_location,
+                         'relative_coordinates_britney':self.britney_location,
+                         'surroundings':self.car_location}
+            
+        return alternate_obd
     
     def get_state(self):
         state = self.states[self.guard_location[0]][self.guard_location[1]]\

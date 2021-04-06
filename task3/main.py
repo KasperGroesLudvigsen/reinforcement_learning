@@ -1,6 +1,7 @@
-import numpy as np 
+import numpy as np
+from matplotlib import pyplot as plt
 
-import utils.utils as utils
+import task3.utils as utils
 
 #import reinforcement_learning.utils.utils as utils
 
@@ -22,32 +23,30 @@ import task3.Discrete_SAC as SAC
 ####################### hyperparams #########################
 
 environment_params = {
-    'N' : 10,
-    'stumble_prob' : 0.3
+    'N' : 6,
+    'stumble_prob' : 0
     }
 
 buffer_params = {
-    'obs_dims': (1,13),
-    'num_actions': 9
+    'obs_dims': (1,6),
+    'num_actions': 10
     }
 
 ac_params = {
-    'num_obs' : 13,
-    'num_actions' : 9,
-    'hidden_sizes' : [100,100],
+    'num_obs' : 6,
+    'num_actions' : 10,
+    'hidden_sizes' : [256,256],
     'activation_func': nn.ReLU
-    }
+     }
 
 params = {
-    'lr': 0.001,
-    'alpha' : 0.1,
+    'lr': 0.0003,
     'gamma': 0.9,
-    'batch_size': 32,
-    'polyak' : 0.8,
-    'clipping_norm': None,
-    'tune_temperature' : 0.5,
+    'batch_size': 64,
+    'polyak' : 0.05,
+    'clipping_norm': 1,
     "automatic_entropy_tuning":False,
-    "entropy_alpha":0.5
+    "entropy_alpha":0.3
     }
 
 ################# params ######################
@@ -77,43 +76,94 @@ buffer = buf.ReplayBuffer(
 environment.display()
 
 
-def learning_environment(number_of_episodes):
-
+def learning_environment(seed, random_episodes, number_of_episodes):
+    training_scores = []
+    validation_scores = []
+    #rewards = []
     #fill up buffer
     
-    for _ in range(32):
+    for _ in range(seed):
         done = False
+        environment.reset()
+        #environment.respawn()
         while not done:
-            done = DSAC.environment_step(environment, buffer)
+            done = DSAC.environment_step(environment, buffer, buffer_fill=True)
     
+    
+    for _ in range(random_episodes):
+        done = False
+        environment.reset()
+        #environment.respawn()
+        while not done:
+            done = DSAC.environment_step(environment, buffer, buffer_fill=True)
+            DSAC.gradient_step(buffer, params['batch_size'])
+            #DSAC.gradient_step_experiment(buffer, params['batch_size'])
+            #DSAC.gradient_step_experiment(buffer, params['batch_size'])
     ran_out_of_time = 0
     success = 0
         
-    for _ in range(number_of_episodes): 
-        environment.respawn()
+    for _ in range(number_of_episodes):
+        print('Starting Episode: ', _)
+        environment.reset()
+        #environment.respawn()
         
-        
-        
-        #if params['batch_size'] > buffer.memory_counter:
-        
-        environment.respawn
         done = False
+        rewardz = 0
         while not done:
-            done = DSAC.environment_step(environment, buffer)
-            environment.display()
-            DSAC.gradient_step_experiment(buffer, params['batch_size'])
+            done, reward = DSAC.environment_step(environment, buffer, buffer_fill = False)
+            rewardz += reward
+            #environment.display()
+            DSAC.gradient_step(buffer, params['batch_size'])
+            #DSAC.gradient_step_experiment(buffer, params['batch_size'])
+            #DSAC.gradient_step_experiment(buffer, params['batch_size'])
             # add some visual stuff
+        training_scores.append(rewardz)    
+        #training_scores.append(environment.time_elapsed)
+        #rewards.append()
         if environment.time_elapsed == environment.time_limit:
             ran_out_of_time += 1
         else:
             success +=1
+            
+        if _ % 10 ==0:
+            print('Strarting Valdiation loop')
+            DSAC.train_mode = False
+            environment.reset()
+            #environment.respawn()
+        
+            done = False
+            val_rewardz = 0
+            while not done:
+                done, reward = DSAC.environment_step(environment, buffer, buffer_fill = False)
+                val_rewardz += reward
+            validation_scores.append(val_rewardz)
+            DSAC.train_mode = True
+                
+            
+    plt.plot(training_scores)
+    plt.title('Training Scores')
+    plt.xlabel('Episode')
+    plt.ylabel('Episode length')
+    plt.grid(True)
+    plt.show()
+    
+    plt.plot(validation_scores)
+    plt.title('Validation Scores')
+    plt.xlabel('Episode')
+    plt.ylabel('Episode length')
+    plt.grid(True)
+    plt.show()
+    
     print("times ran out: {}".format(ran_out_of_time))
     print("successes: {}".format(success))       
 
-learning_environment(1)
-learning_environment(200)
-#earning_environment(2000)
-#SAC.alpha = 0.1
+#learning_environment(1)
+#DSAC.alpha=0
+learning_environment(1000,0,1000)
+#learning_environment(1000,0,100)
+#DSAC.train_mode = False
+#learning_environment(0,0, 100)
+#SAC.alpha = 0.
 
 
 #for _ in range(10):
