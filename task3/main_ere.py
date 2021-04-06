@@ -16,7 +16,7 @@ from copy import deepcopy
 import itertools
 from torch.optim import Adam
 import task1.britneyworld as bw
-import task3.buffer as buf
+import task3.buffer_ere as buf
 import task3.networks.q_network as qnet
 import task3.Discrete_SAC as SAC
 
@@ -45,7 +45,7 @@ params = {
     'batch_size': 64,
     'polyak' : 0.05,
     'clipping_norm': 1,
-    "automatic_entropy_tuning":True,
+    "automatic_entropy_tuning":False,
     "entropy_alpha":0.3
     }
 
@@ -76,13 +76,13 @@ buffer = buf.ReplayBuffer(
 environment.display()
 
 
-def learning_environment(seed, random_episodes, number_of_episodes, display = False):
+def learning_environment(number_of_episodes, display = False):
     training_scores = []
     validation_scores = []
     #rewards = []
     #fill up buffer
     
-    for _ in range(seed):
+    for _ in range(1000):
         done = False
         environment.reset()
         #environment.respawn()
@@ -90,15 +90,6 @@ def learning_environment(seed, random_episodes, number_of_episodes, display = Fa
             done = DSAC.environment_step(environment, buffer, buffer_fill=True)
     
     
-    for _ in range(random_episodes):
-        done = False
-        environment.reset()
-        #environment.respawn()
-        while not done:
-            done = DSAC.environment_step(environment, buffer, buffer_fill=True)
-            DSAC.gradient_step(buffer, params['batch_size'])
-            #DSAC.gradient_step_experiment(buffer, params['batch_size'])
-            #DSAC.gradient_step_experiment(buffer, params['batch_size'])
     ran_out_of_time = 0
     success = 0
         
@@ -114,10 +105,18 @@ def learning_environment(seed, random_episodes, number_of_episodes, display = Fa
             rewardz += reward
             if display:
                 environment.display()
-            DSAC.gradient_step(buffer, params['batch_size'])
+            
             #DSAC.gradient_step_experiment(buffer, params['batch_size'])
             #DSAC.gradient_step_experiment(buffer, params['batch_size'])
-            # add some visual stuff
+            # add some visual stuff#
+            
+        big_k = 100
+        little_k = 1
+        for a in range(big_k):
+            states, new_states, actions, rewards, dones = buffer.sample(params['batch_size'], big_k, little_k)
+            DSAC.gradient_step_ere(states, new_states, actions, rewards, dones)
+            little_k += 1
+        
         training_scores.append(rewardz)    
         #training_scores.append(environment.time_elapsed)
         #rewards.append()
@@ -163,7 +162,7 @@ def learning_environment(seed, random_episodes, number_of_episodes, display = Fa
 #learning_environment(1)
 #DSAC.alpha=0
 #learning_environment(1000,0,1000)
-learning_environment(1,0,100)
+learning_environment(21)
 #DSAC.train_mode = False
 #learning_environment(1000,0, 10000)
 #SAC.alpha = 0.
@@ -172,4 +171,3 @@ learning_environment(1,0,100)
 #for _ in range(10):
 #    learning_environment(10)
 #environment.display()
-DSAC.target_entropy
