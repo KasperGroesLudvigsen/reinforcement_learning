@@ -159,7 +159,7 @@ class DiscreteSAC:
         #print('action', action)
         #print('new state: ', converted_new_obs)
         buffer.append(converted_obs, action_index, reward, converted_new_obs, done_num)
-        return done
+        return done, reward
         
     def gradient_step(self, buffer, batchsize):
         """

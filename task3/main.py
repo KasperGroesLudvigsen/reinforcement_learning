@@ -108,15 +108,17 @@ def learning_environment(seed, random_episodes, number_of_episodes):
         #environment.respawn()
         
         done = False
+        rewardz = 0
         while not done:
-            done = DSAC.environment_step(environment, buffer, buffer_fill = False)
-            environment.display()
+            done, reward = DSAC.environment_step(environment, buffer, buffer_fill = False)
+            rewardz += reward
+            #environment.display()
             DSAC.gradient_step(buffer, params['batch_size'])
             #DSAC.gradient_step_experiment(buffer, params['batch_size'])
             #DSAC.gradient_step_experiment(buffer, params['batch_size'])
             # add some visual stuff
-            
-        training_scores.append(environment.time_elapsed)
+        training_scores.append(rewardz)    
+        #training_scores.append(environment.time_elapsed)
         #rewards.append()
         if environment.time_elapsed == environment.time_limit:
             ran_out_of_time += 1
@@ -130,11 +132,11 @@ def learning_environment(seed, random_episodes, number_of_episodes):
             #environment.respawn()
         
             done = False
-            validation_episode_length = 0
+            val_rewardz = 0
             while not done:
-                validation_episode_length += 1
-                done = DSAC.environment_step(environment, buffer, buffer_fill = False)
-            validation_scores.append(validation_episode_length)
+                done, reward = DSAC.environment_step(environment, buffer, buffer_fill = False)
+                val_rewardz += reward
+            validation_scores.append(val_rewardz)
             DSAC.train_mode = True
                 
             
