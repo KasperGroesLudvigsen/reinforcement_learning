@@ -393,75 +393,6 @@ def test_agent_blocks_photo():
 test_agent_blocks_photo()    
 
 
-        
-def get_surroundings(guard_location, env_map, env_size, obs_size):
-    import torch
-    lower_bound = math.floor(obs_size / 2)
-    upper_bound = lower_bound + 1 # +1 because slicing np.arrays is not inclusive
-    
-    row_start, row_end = guard_location[0] -lower_bound, guard_location[0] +upper_bound
-    col_start, col_end = guard_location[1] -lower_bound, guard_location[1] +upper_bound
-    
-    #pad_top = False
-    #pad_bottom = False
-    #pad_left = False
-    #pad_right = False
-    
-    pad = False
-    
-    pad_top = 0
-    pad_bottom = 0
-    pad_left = 0
-    pad_right = 0
-    
-    if row_start < 0:
-        #diff_row_start = abs(row_start)
-        pad_top = abs(row_start)
-        row_start = 0
-        pad = True
-        #row_start_padding = torch.ones([diff_row_start, obs_size+1])
-        #pad_top = True
-        #row_start_padding = -row_start_padding
-    if row_end > env_size:
-        #diff_row_end = row_end-env_size
-        pad_bottom = row_end-env_size
-        row_end = env_size+1
-        pad = True
-        #row_end_padding = torch.ones([diff_row_end, obs_size+1])
-        #pad_bottom = True
-        #row_end_padding = -row_end_padding
-    if col_start < 0:
-        #diff_col_start = abs(col_start)
-        pad_left = abs(col_start)
-        col_start = 0
-        pad = True
-        #col_start_padding = torch.ones([diff_col_start, obs_size+1])
-        #pad_left = True
-    if col_end > env_size:
-        pad_right = col_end-env_size
-        #pad_right = abs(col_end)
-        #diff_col_end = col_end-env_size
-        col_end = env_size+1
-        pad = True
-        #col_end_padding = torch.ones([diff_col_end, obs_size+1])
-        #pad_right = True
-    
-        
-    surroundings = env_map[row_start:row_end, col_start:col_end]
-    
-    if pad:
-        surroundings = np.pad(
-            np.array(surroundings),
-            ((pad_top, pad_bottom), (pad_left, pad_right)),
-            mode="constant",
-            constant_values=-1
-            )
-        
-        surroundings = torch.Tensor(surroundings)
-        
-    return surroundings
-    
-
 def test_get_surroundings():
     env = bw.Environment(env_params)
     obs_size = env.size//2 # the agent sees 1/4 of the env
@@ -478,7 +409,7 @@ def test_get_surroundings():
         assert i == -1
          
     guard_location = np.array([17,17])
-    surroundings = get_surroundings(guard_location=guard_location, 
+    surroundings = env.get_surroundings(guard_location=guard_location, 
                                     env_map=env.map,
                                     env_size=env.size,
                                     obs_size=obs_size)
@@ -489,7 +420,7 @@ def test_get_surroundings():
         assert i == -1
 
     guard_location = np.array([10,10])
-    surroundings = get_surroundings(guard_location=guard_location, 
+    surroundings = env.get_surroundings(guard_location=guard_location, 
                                     env_map=env.map,
                                     env_size=env.size,
                                     obs_size=obs_size)
@@ -498,6 +429,6 @@ def test_get_surroundings():
     for i in surroundings[0]:
         assert i == 0      
         
-    
+test_get_surroundings()   
         
     
