@@ -40,7 +40,7 @@ class Environment:
         self.britney_location = self.guard_start_location
         self.stumple_prob = environment_params['stumble_prob']
         self.car_location = np.array([environment_params['N']-2, environment_params['N']-2])
-        self.reward = None
+        #self.reward = None
         # our 'dictionary' where we assign a single number for each coordinate
         #self.locations = [[x,y] for x in range(N) for y in range(N)] 
         index_states = np.arange(0, (environment_params['N']*environment_params['N'])**2)
@@ -77,7 +77,9 @@ class Environment:
             return np.asarray(selected_coordinates).reshape(2,)
         
         return selected_coordinates    
-            
+    def environment_step(self, guard_location, britney_location, action):
+        _, reward, done = self.take_action_guard(guard_location, britney_location, action) 
+        return reward, done
         
     def take_action_guard(self, guard_location, britney_location, action):
         # At every timestep, the agent receives a negative reward
@@ -252,9 +254,9 @@ class Environment:
         
         """
         self.time_elapsed = 0
-        self.car_location = np.array([4,4])
+        self.car_location = self.get_empty_cells(1)
         # Setting Britney's location
-        self.britney_start_location = np.array([3,3])#self.get_empty_cells(1)
+        self.britney_start_location = self.get_empty_cells(1)
         #self.britney_start_location = np.array([2,2])
         self.britney_location = self.britney_start_location
         
