@@ -143,7 +143,7 @@ class DiscreteSAC:
         
         
         # get reward, next state, done from environment by taking action in the world.
-        _, reward, done = environment.take_action_guard(
+        reward, done = environment.environment_step(
             environment.guard_location,
             environment.britney_location,
             action)

@@ -76,7 +76,7 @@ buffer = buf.ReplayBuffer(
 environment.display()
 
 
-def learning_environment(seed, random_episodes, number_of_episodes):
+def learning_environment(seed, random_episodes, number_of_episodes, display = False):
     training_scores = []
     validation_scores = []
     #rewards = []
@@ -112,7 +112,8 @@ def learning_environment(seed, random_episodes, number_of_episodes):
         while not done:
             done, reward = DSAC.environment_step(environment, buffer, buffer_fill = False)
             rewardz += reward
-            #environment.display()
+            if display:
+                environment.display()
             DSAC.gradient_step(buffer, params['batch_size'])
             #DSAC.gradient_step_experiment(buffer, params['batch_size'])
             #DSAC.gradient_step_experiment(buffer, params['batch_size'])
@@ -135,6 +136,8 @@ def learning_environment(seed, random_episodes, number_of_episodes):
             val_rewardz = 0
             while not done:
                 done, reward = DSAC.environment_step(environment, buffer, buffer_fill = False)
+                if display:
+                    environment.display()
                 val_rewardz += reward
             validation_scores.append(val_rewardz)
             DSAC.train_mode = True

@@ -25,9 +25,6 @@ class AssPapWorld(ass.AssassinWorld):
         
         super().__init__(environment_params, obs_size, assassin_locations,
                          stab_probability, stab_reward)
-        
-        # Reward received by agent if Britney is photographed
-        self.photo_reward = photo_reward
     
         # Create paparazzi
         #self.paps_generator = Paparazzi(self.size, photo_reward)
@@ -51,11 +48,12 @@ class AssPapWorld(ass.AssassinWorld):
         
     def environment_step(self, action):
         done = False
-        
+        rewardz = 0
         # Moving assassins and stabbing
         done, reward = self.stab(self.britney_location, self.assassin_locations,
                                  self.guard_location)
-        self.reward += reward
+        #self.reward += reward
+        rewardz += reward
         self.assassin_locations = self.move_assassins(self.britney_location,
                                                       self.assassin_locations)
         
@@ -63,17 +61,18 @@ class AssPapWorld(ass.AssassinWorld):
         for pap in self.paparazzi:
             photo_reward = pap.take_photo(self.guard_location, self.britney_location)
             pap.move_pap(self.map)
-            self.reward += photo_reward
+            rewardz += photo_reward
+            #self.reward += photo_reward
         
         if not done:
             _, reward, done = self.take_action_guard(self.guard_location,
                                                          self.britney_location, action)
-            self.reward += reward
-        
-        return self.reward, done
+            #self.reward += reward
+            rewardz += reward
+        return rewardz, done
         
 
-class Paparazzi:
+class Paparazzi():
     
     """ One of these objects represents one paparazzi """
     
