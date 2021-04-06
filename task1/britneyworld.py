@@ -25,7 +25,7 @@ class Environment:
         
         self.map = torch.zeros((environment_params['N'],environment_params['N']))
         self.size = environment_params['N']
-        #self.obs_size = obs_size
+        self.obs_size = 10
         
         # creating borders
         self.map[0,:] = 1
@@ -288,14 +288,15 @@ class Environment:
         args:
             obs_size (int) : side length of the n*n partition that the agent can observe
         """
-        obs_size = int(self.size/3)
-        lower_bound = math.floor(obs_size / 2)
-        upper_bound = lower_bound + 1 # +1 because slicing np.arrays is not inclusive
+        # Commenting out this bc its in get_surroundings()
+        #obs_size = int(self.size/3)
+        #lower_bound = math.floor(obs_size / 2)
+        #upper_bound = lower_bound + 1 # +1 because slicing np.arrays is not inclusive
         
         
         relative_coordinates_car = self.car_location - self.britney_location
         relative_coordinates_britney = self.britney_location - self.guard_location
-        
+        """
         x1, y1 = self.guard_location[0] -lower_bound, self.guard_location[0] +upper_bound
         x2, y2 = self.guard_location[1] -lower_bound, self.guard_location[1] +upper_bound
         
@@ -313,11 +314,64 @@ class Environment:
                          'relative_coordinates_britney':self.britney_location,
                          'surroundings':self.car_location}
             
-        return alternate_obd
+        return alternate_obd"""
+    
+        surroundings= self.get_surroundings(
+            env_map=self.map, env_size=self.size, obs_size=self.obs_size)
+        
+        observation = {"relative_coordinates_car" : relative_coordinates_car,
+                       "relative_coordinates_britney" : relative_coordinates_britney,
+                       "surroundings" : surroundings}
+        
+        return observation
     
     def get_state(self):
         state = self.states[self.guard_location[0]][self.guard_location[1]]\
             [self.britney_location[0]][self.britney_location[1]]
         return state
     
+    def get_surroundings(self, guard_location, env_map, env_size, obs_size):
 
+        lower_bound = math.floor(obs_size / 2)
+        upper_bound = lower_bound + 1 # +1 because slicing np.arrays is not inclusive
+        
+        row_start, row_end = guard_location[0] -lower_bound, guard_location[0] +upper_bound
+        col_start, col_end = guard_location[1] -lower_bound, guard_location[1] +upper_bound
+        
+        pad = False
+        
+        pad_top = 0
+        pad_bottom = 0
+        pad_left = 0
+        pad_right = 0
+        
+        if row_start < 0:
+            pad_top = abs(row_start)
+            row_start = 0
+            pad = True
+        if row_end > env_size:
+            pad_bottom = row_end-env_size
+            row_end = env_size+1
+            pad = True
+        if col_start < 0:
+            pad_left = abs(col_start)
+            col_start = 0
+            pad = True
+        if col_end > env_size:
+            pad_right = col_end-env_size
+            col_end = env_size+1
+            pad = True
+         
+        surroundings = env_map[row_start:row_end, col_start:col_end]
+        
+        if pad:
+            surroundings = np.pad(
+                np.array(surroundings),
+                ((pad_top, pad_bottom), (pad_left, pad_right)),
+                mode="constant",
+                constant_values=-1
+                )
+            
+            surroundings = torch.Tensor(surroundings)
+            
+        return surroundings
