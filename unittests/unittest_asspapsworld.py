@@ -9,10 +9,12 @@ import task1.asspapsworld as asspap
 import numpy as np
 from copy import copy
 import math 
+import task1.britneyworld as bw
 
 env_params = {
     'N' : 20,
-    'stumble_prob' : 0.3
+    'stumble_prob' : 0.3,
+    'obs_size' : 10
     }
 
 ass_locations = [np.array([5,5]), np.array([6,6])]
@@ -461,10 +463,11 @@ def get_surroundings(guard_location, env_map, env_size, obs_size):
     
 
 def test_get_surroundings():
+    env = bw.Environment(env_params)
     obs_size = env.size//2 # the agent sees 1/4 of the env
-
+    
     guard_location = np.array([2,2])
-    surroundings = get_surroundings(guard_location=guard_location, 
+    surroundings = env.get_surroundings(guard_location=guard_location, 
                                     env_map=env.map,
                                     env_size=env.size,
                                     obs_size=obs_size)
@@ -473,14 +476,12 @@ def test_get_surroundings():
     # tensor represents the border of the env
     for i in surroundings[0]:
         assert i == -1
-        
-        
+         
     guard_location = np.array([17,17])
     surroundings = get_surroundings(guard_location=guard_location, 
                                     env_map=env.map,
                                     env_size=env.size,
                                     obs_size=obs_size)
-    
     assert surroundings.shape == (11, 11)
     # Asserting that all values in first tensor is 1s because the first
     # tensor represents the border of the env
@@ -488,16 +489,15 @@ def test_get_surroundings():
         assert i == -1
 
     guard_location = np.array([10,10])
-    obs_size = env.size//2 # the agent sees 1/4 of the env
-    
     surroundings = get_surroundings(guard_location=guard_location, 
                                     env_map=env.map,
                                     env_size=env.size,
                                     obs_size=obs_size)
-    
     assert surroundings.shape == (11, 11)
     # Asserting that all values in first tensor is 0s
     for i in surroundings[0]:
-        assert i == 0        
+        assert i == 0      
+        
+    
         
     
