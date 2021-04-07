@@ -16,7 +16,7 @@ class AssassinWorld(bw.Environment):
     """
     def __init__(self, environment_params, obs_size, assassin_locations,
                  stab_probability, stab_reward):
-        super().__init__(environment_params, obs_size)
+        super().__init__(environment_params)
 
         self.assassin_locations = assassin_locations
         self.num_assassins = len(assassin_locations)

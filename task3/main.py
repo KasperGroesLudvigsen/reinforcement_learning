@@ -24,7 +24,8 @@ import task3.Discrete_SAC as SAC
 
 environment_params = {
     'N' : 6,
-    'stumble_prob' : 0
+    'stumble_prob' : 0,
+    'obs_size' : 10
     }
 
 buffer_params = {

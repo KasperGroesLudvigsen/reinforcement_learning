@@ -25,7 +25,7 @@ class Environment:
         
         self.map = torch.zeros((environment_params['N'],environment_params['N']))
         self.size = environment_params['N']
-        self.obs_size = 10
+        self.obs_size = environment_params["obs_size"]
         
         # creating borders
         self.map[0,:] = 1
