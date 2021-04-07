@@ -8,20 +8,11 @@ import os
 import torch as T
 import torch.nn.functional as F
 import torch.nn as nn
-import torch.optim as optim
-from torch.distributions.normal import Normal
-import numpy as np
-#import utils.utils as utils
-
 import utils.utils as utils
-
-
-#import reinforcement_learning.utils.utils as utils
 
 class PiNet(nn.Module):
     """
         This class is the actor network. It is the parametrised policy.
-        
     """
     
     def __init__(self, num_obs, num_actions, hidden_sizes, activation_func, 
@@ -30,7 +21,7 @@ class PiNet(nn.Module):
         super().__init__()
         
         layer_sizes = [num_obs] + list(hidden_sizes) + [num_actions]
-        self.q = utils.mlp(sizes=layer_sizes, activation=activation_func)#, output_activation = nn.Softmax)
+        self.q = utils.mlp(sizes=layer_sizes, activation=activation_func)
         self.checkpoint_file = os.path.join(checkpoint_dir, name+"_sac.pt")
         
     def forward(self, observation):

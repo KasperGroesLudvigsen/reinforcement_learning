@@ -7,12 +7,7 @@ Created on Tue Mar 16 10:36:26 2021
 import os
 import torch
 import torch.nn as nn
-#import utils.utils as utils
-
 import utils.utils as utils
-
-#import reinforcement_learning.utils.utils as utils
-
 
 class QNet(nn.Module):
     # adapted from:
@@ -36,7 +31,6 @@ class QNet(nn.Module):
         name : name (str) of QNet when saved
 
         """
-
         super().__init__()
         
         layer_sizes = [num_obs] + list(hidden_sizes) + [num_actions]
