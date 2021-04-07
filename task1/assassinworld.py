@@ -10,20 +10,22 @@ import random
     
 
 class AssassinWorld(bw.Environment):
-    """
-    assassin_locations : 2d numpy array that contains a number of (x,y) coordinates
     
-    """
-    def __init__(self, environment_params, obs_size, assassin_locations,
+    def __init__(self, environment_params, assassin_params), assassin_locations,
                  stab_probability, stab_reward):
-        super().__init__(environment_params, obs_size)
-
+        super().__init__(environment_params)
+        '''
+        assassin_locations : 2d numpy array that contains a number of (x,y) 
+        coordinates
+        
+        stab_probability : Probability that agent is stabbed if adjacent to assassin
+        
+        stab_reward : Negative reward (int) received if agent or britney is stabbed
+        '''
         self.assassin_locations = assassin_locations
         self.num_assassins = len(assassin_locations)
         self.reward = 0
-        # Probability that agent is stabbed if adjacent to assassin
         self.stab_probability = stab_probability
-        # Negative reward (int) received if agent or britney is stabbed
         self.stab_reward = stab_reward
         
     def __call__(self, action):

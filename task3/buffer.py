@@ -10,18 +10,20 @@ import torch
 class ReplayBuffer:
     # Adapted from: 
     # https://www.youtube.com/watch?v=ioidsRlf79o&ab_channel=MachineLearningwithPhil
-    def __init__(self, input_shape, num_actions, memory_size=1000000):
+    def __init__(self, params, memory_size=1000000):
         """
         memory_size : max size of memory
-        input_shape : shape/dimensions of observation from environment
-        num_actions : number of actions available to the agent
-        
+        buffer_params[obs_dims] : shape/dimensions of observation from environment
         """
         self.memory_size = memory_size
         self.memory_counter = 0
-        self.state_memory = np.zeros((self.memory_size, *input_shape))
+        self.state_memory = np.zeros(
+            (self.memory_size, *params['buffer_params']['obs_dims'])
+            )
         # Store states that occur after actions
-        self.new_state_memory = np.zeros((self.memory_size, *input_shape))
+        self.new_state_memory = np.zeros(
+            (self.memory_size, *params['buffer_params']['obs_dims'])
+            )
         self.action_memory = np.zeros((self.memory_size), dtype=np.float32)
         self.reward_memory = np.zeros((self.memory_size))
         # Store whether the state was terminal
@@ -42,10 +44,16 @@ class ReplayBuffer:
         
         self.memory_counter += 1
         
-    def sample(self, batch_size):
+    def sample(self, batch_size, ere=False, big_k = None, little_k = None):
         n_stored_memories = min(self.memory_counter, self.memory_size)
-        big_as_batch_can_be = min(n_stored_memories, batch_size)
-        batch_idx = np.random.choice(n_stored_memories, big_as_batch_can_be, replace=False)
+        if ere:  
+            c_k = n_stored_memories*0.996**(1000*little_k/big_k)
+            sample_range = range(int(c_k), n_stored_memories)
+            big_as_batch_can_be = min(int(n_stored_memories-c_k), batch_size)
+            batch_idx = np.random.choice(sample_range, big_as_batch_can_be, replace=False)
+        else:
+            big_as_batch_can_be = min(n_stored_memories, batch_size)
+            batch_idx = np.random.choice(n_stored_memories, big_as_batch_can_be, replace=False)
         
         states = torch.as_tensor(self.state_memory[batch_idx], dtype=torch.float32)
         new_states = torch.as_tensor(self.new_state_memory[batch_idx], dtype=torch.float32)
