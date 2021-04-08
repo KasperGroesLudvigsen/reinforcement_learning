@@ -19,6 +19,9 @@ def learning_environment(params, environment, display = False, reset = True):
     training_scores_pct = []
     validation_scores_pct = []
     
+    test_scores = []
+    test_scores_pct = []
+    
     #fill up buffer    
     for _ in range(1000):
         done = False
@@ -82,7 +85,7 @@ def learning_environment(params, environment, display = False, reset = True):
         else:
             success +=1
             
-        if _ % 10 == 0:
+        if _ % 50 == 0:
             DSAC.train_mode = False
             if reset:
                 environment.reset()
@@ -102,7 +105,27 @@ def learning_environment(params, environment, display = False, reset = True):
             val_rewards_pct = (val_rewardz/(environment.size**2))*100
             validation_scores_pct.append(val_rewards_pct)
             DSAC.train_mode = True
-     
+    
+    for _ in range(100):    
+        if reset:
+            environment.reset()
+        else:
+            environment.respawn()
+        done = False
+        rewardz = 0
+        while not done:
+            done, reward = DSAC.environment_step(
+                environment, buffer, buffer_fill = False
+                )
+            rewardz += reward
+        test_scores.append(rewardz)
+        test_score_pct = (rewardz/(environment.size**2))*100
+        test_scores_pct.append(test_score_pct)
+        
+        
+        
+        
+    
     filename = params["experiment_name"] + "_training_scores.png"             
     plt.plot(training_scores)
     plt.title('Training Scores')
@@ -128,11 +151,23 @@ def learning_environment(params, environment, display = False, reset = True):
         print("Plot saved as {}".format(filename))
     except:
         print("Could not save plot")
+     
+    filename = params["experiment_name"] + "_test_scores.png"             
+    plt.plot(training_scores)
+    plt.title('Test Scores')
+    plt.xlabel('Episode')
+    plt.ylabel('Episode reward')
+    plt.grid(True)
+    plt.show()
+    try:
+        plt.savefig(filename)
+        print("Plot saved as {}".format(filename))
+    except:
+        print("Could not save plot")    
         
-        
-    filename = params["experiment_name"] + "_training_scores_pct.png"             
+    filename = params["experiment_name"] + "_test_scores_pct.png"             
     plt.plot(training_scores_pct)
-    plt.title('Training Scores as % of max possible reward')
+    plt.title('Test Scores as % of max possible reward')
     plt.xlabel('Episode')
     plt.ylabel('Episode reward')
     plt.grid(True)
@@ -165,11 +200,20 @@ def learning_environment(params, environment, display = False, reset = True):
     print("Percentage of times ran out : {} %".format(ran_out_pct))
     print("Percentage of successes : {} %".format(successes_pct))
     
+    
+    
+    
     training_scores_np = np.array(training_scores)
     validation_scores_np = np.array(validation_scores)
+    test_scores_np = np.array(test_scores)
     filename = params["experiment_name"] + "_training_scores.npy"  
     np.save(filename, training_scores_np)
     filename  = params["experiment_name"] + "validation_scores.npy"  
     np.save(filename, validation_scores_np)
+    filename  = params["experiment_name"] + "test_scores.npy"  
+    np.save(filename, test_scores_np)
+    
+    average_test = sum(test_scores_np)/len(test_scores_np)
+    print("Average test score: {}".format(average_test))
     
     
