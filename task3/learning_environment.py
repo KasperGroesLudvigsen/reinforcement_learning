@@ -132,7 +132,7 @@ def learning_environment(params, environment, display = False, reset = True):
     plt.xlabel('Episode')
     plt.ylabel('Episode reward')
     plt.grid(True)
-    plt.show()
+    #plt.show()
     try:
         plt.savefig(filename)
         print("Plot saved as {}".format(filename))
@@ -145,7 +145,7 @@ def learning_environment(params, environment, display = False, reset = True):
     plt.xlabel('Episode')
     plt.ylabel('Episode reward')
     plt.grid(True)
-    plt.show()
+    #plt.show()
     try:
         plt.savefig(filename)
         print("Plot saved as {}".format(filename))
@@ -158,7 +158,7 @@ def learning_environment(params, environment, display = False, reset = True):
     plt.xlabel('Episode')
     plt.ylabel('Episode reward')
     plt.grid(True)
-    plt.show()
+    #plt.show()
     try:
         plt.savefig(filename)
         print("Plot saved as {}".format(filename))
@@ -171,7 +171,7 @@ def learning_environment(params, environment, display = False, reset = True):
     plt.xlabel('Episode')
     plt.ylabel('Episode reward')
     plt.grid(True)
-    plt.show()
+    #plt.show()
     try:
         plt.savefig(filename)
         print("Plot saved as {}".format(filename))
@@ -184,7 +184,7 @@ def learning_environment(params, environment, display = False, reset = True):
     plt.xlabel('Episode')
     plt.ylabel('Episode reward')
     plt.grid(True)
-    plt.show()
+    #plt.show()
     try:
         plt.savefig(filename)
         print("Plot saved as {}".format(filename))
