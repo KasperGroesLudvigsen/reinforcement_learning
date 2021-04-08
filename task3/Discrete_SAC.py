@@ -64,7 +64,8 @@ class DiscreteSAC:
             self.device = torch.cuda.device("cuda")
         else: 
             self.device = torch.device("cpu")
-
+        
+        self.exp_name = params['experiment_name']
         # Hyperparameters
         self.gamma = params["learning_params"]["gamma"]
         self.polyak = params["learning_params"]["polyak"] 
@@ -79,6 +80,7 @@ class DiscreteSAC:
         # A shallow/normal copy copies and object then inserts references into
         # the copy of the objects in the origional
         self.target_actor_critic = deepcopy(self.actor_critic)
+        
         
         # Freeze target networks with respect to optimizers (only update via 
         # polyak averaging)
@@ -306,7 +308,13 @@ class DiscreteSAC:
         alpha_loss = -(self.log_alpha * (log_pi + self.target_entropy).detach()).mean()
         return alpha_loss
     
-    
+    def save_model(self):
+        torch.save(self.actor_critic.policy.state_dict(), self.exp_name +"_local_pi.pt") # where PATH is just the file name, e.g. "model_1.pt"
+        torch.save(self.actor_critic.q1.state_dict(), self.exp_name +"_local_q1.pt")
+        torch.save(self.actor_critic.q2.state_dict(), self.exp_name +"_local_q2.pt")
+        torch.save(self.target_actor_critic.q1.state_dict(), self.exp_name +"_target_q1.pt")
+        torch.save(self.target_actor_critic.q2.state_dict(), self.exp_name +"_target_q2.pt")
+
     
     
     
