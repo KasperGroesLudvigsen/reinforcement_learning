@@ -22,6 +22,12 @@ params_b["experiment_name"] = "task3_experiment_1_b"
 params_c["experiment_name"] = "task3_experiment_1_c"
 params_d["experiment_name"] = "task3_experiment_1_d"
 
+params_a["number_of_episodes"] = 2
+params_b["number_of_episodes"] = 2
+params_c["number_of_episodes"] = 2
+params_d["number_of_episodes"] = 2
+
+
 environment = bw.Environment(params_a["environment_params"]) # all env params are the same in this experiment
 
 lr.learning_environment(params=params_a, environment=environment)
