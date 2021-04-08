@@ -10,8 +10,7 @@ DSAC = sac.DiscreteSAC(params)
 environment = bw.Environment(params["environment_params"])
 environment.reset()
 environment.display()
-
-
+ 
 def learning_environment(number_of_episodes, display = False, reset = True, ere = False):
     training_scores = []
     validation_scores = []
