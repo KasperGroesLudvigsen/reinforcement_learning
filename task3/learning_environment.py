@@ -121,14 +121,7 @@ def learning_environment(params, environment, display = False, reset = True):
         test_scores.append(rewardz)
         test_score_pct = (rewardz/(environment.size**2))*100
         test_scores_pct.append(test_score_pct)
-        
-    DSAC.actor_critic.policy.save_checkpoint()        
-    DSAC.actor_critic.q1.save_checkpoint()    
-    DSAC.actor_critic.q2.save_checkpoint()    
-    DSAC.target_actor_critic.q1.save_checkpoint()    
-    DSAC.target_actor_critic.q2.save_checkpoint()    
-    DSAC.actor_critic.q1.save_checkpoint()    
-    DSAC.actor_critic.q1.save_checkpoint()    
+          
         
     
     filename = params["experiment_name"] + "_training_scores.png"             
