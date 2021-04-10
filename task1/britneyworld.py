@@ -73,14 +73,6 @@ class Environment:
         if self.is_empty(britney_new_location): # she can fall onto agent
                 return britney_new_location, reward
         return britney_location, reward
-        """britney_gradient = (
-            britney_location[0]-guard_location[0], \
-                britney_location[1]-guard_location[1]
-                ) 
-        britney_new_location = britney_location + britney_gradient  
-        if self.is_empty(britney_new_location): # she can fall onto agent
-                return britney_new_location
-        return britney_location"""
         
     def get_empty_cells(self, n_cells):
         # This is completely lifted from Michael's code
