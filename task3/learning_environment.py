@@ -23,14 +23,14 @@ def learning_environment(params, environment, display = False, reset = True):
     test_scores_pct = []
     
     #fill up buffer    
-    for _ in range(1000):
+    for _ in range(1000): 
         done = False
         if reset:
             environment.reset()
         else:
             environment.respawn()
         while not done:
-            done = DSAC.environment_step(environment, buffer, buffer_fill=True)
+            done, reward = DSAC.environment_step(environment, buffer, buffer_fill=True)
     
     # Training and Validation
     ran_out_of_time = 0
@@ -215,4 +215,6 @@ def learning_environment(params, environment, display = False, reset = True):
     print("Average test score: {}".format(average_test))
     
     DSAC.save_model()
+
     
+
