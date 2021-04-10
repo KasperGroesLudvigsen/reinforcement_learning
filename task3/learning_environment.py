@@ -121,9 +121,7 @@ def learning_environment(params, environment, display = False, reset = True):
         test_scores.append(rewardz)
         test_score_pct = (rewardz/(environment.size**2))*100
         test_scores_pct.append(test_score_pct)
-        
-        
-        
+          
         
     
     filename = params["experiment_name"] + "_training_scores.png"             
@@ -217,3 +215,6 @@ def learning_environment(params, environment, display = False, reset = True):
     print("Average test score: {}".format(average_test))
     
     DSAC.save_model()
+
+    
+

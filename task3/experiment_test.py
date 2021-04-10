@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Apr  8 22:19:04 2021
+
+@author: hugha
+"""
+
 import params.task3_experiment_1_a_params as params_a
 import params.task3_experiment_1_b_params as params_b
 import params.task3_experiment_1_c_params as params_c
@@ -22,15 +29,10 @@ params_b["experiment_name"] = "task3_experiment_1_b"
 params_c["experiment_name"] = "task3_experiment_1_c"
 params_d["experiment_name"] = "task3_experiment_1_d"
 
-params_a["number_of_episodes"] = 2
-params_b["number_of_episodes"] = 2
-params_c["number_of_episodes"] = 2
-params_d["number_of_episodes"] = 2
+params_a["learning_params"]["number_of_episodes"] = 1
+
 
 
 environment = bw.Environment(params_a["environment_params"]) # all env params are the same in this experiment
 
 lr.learning_environment(params=params_a, environment=environment)
-lr.learning_environment(params=params_b, environment=environment)
-lr.learning_environment(params=params_c, environment=environment)
-lr.learning_environment(params=params_d, environment=environment)

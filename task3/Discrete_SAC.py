@@ -17,10 +17,6 @@ import task3.utils as utils
 import numpy as np
 import params.device as dev
 
-if torch.cuda.is_available():
-    DEVICE = torch.cuda.device("cuda")
-else: 
-    DEVICE = torch.device("cpu")
 
 class Actor_Critic(nn.Module):
     """
@@ -66,11 +62,12 @@ class DiscreteSAC:
     """
     def __init__(self, params):
         
-        #if torch.cuda.is_available():
-        #    self.device = torch.cuda.device("cuda")
-        #else: 
-        #    self.device = torch.device("cpu")
 
+        if torch.cuda.is_available():
+            self.device = torch.cuda.device("cuda")
+        else: 
+            self.device = torch.device("cpu")
+        
         self.exp_name = params['experiment_name']
         # Hyperparameters
         self.gamma = params["learning_params"]["gamma"]
@@ -86,6 +83,7 @@ class DiscreteSAC:
         # A shallow/normal copy copies and object then inserts references into
         # the copy of the objects in the origional
         self.target_actor_critic = deepcopy(self.actor_critic)
+        
         
         # Freeze target networks with respect to optimizers (only update via 
         # polyak averaging)
@@ -323,7 +321,7 @@ class DiscreteSAC:
         torch.save(self.actor_critic.q2.state_dict(), self.exp_name +"_local_q2.pt")
         torch.save(self.target_actor_critic.q1.state_dict(), self.exp_name +"_target_q1.pt")
         torch.save(self.target_actor_critic.q2.state_dict(), self.exp_name +"_target_q2.pt")
-    
+
     
     
     

@@ -59,15 +59,20 @@ class Environment:
                 )
                 
         
-    def push_britney(self, britney_location, guard_location):
+    def push_britney(self, britney_location, guard_location, car_location):
+        closeness_before = sum((britney_location-car_location)**2)
+        reward = 0
         britney_gradient = (
             britney_location[0]-guard_location[0], \
                 britney_location[1]-guard_location[1]
                 ) 
-        britney_new_location = britney_location + britney_gradient  
+        britney_new_location = britney_location + britney_gradient 
+        closeness_after = sum((britney_new_location-car_location)**2)
+        if closeness_after < closeness_before:
+            reward = 1
         if self.is_empty(britney_new_location): # she can fall onto agent
-                return britney_new_location
-        return britney_location
+                return britney_new_location, reward
+        return britney_location, reward
         
     def get_empty_cells(self, n_cells):
         # This is completely lifted from Michael's code
@@ -98,9 +103,10 @@ class Environment:
         
         if action == "push":
             if self.are_locations_adjacent(britney_location, guard_location):
-                britney_location = self.push_britney(
+                britney_location, push_reward = self.push_britney(
                     britney_location, guard_location
                     )
+                reward += push_reward
         elif action == "pull":
             if self.are_locations_adjacent(britney_location, guard_location):
                 britney_location, guard_location = self.pull_britney(
