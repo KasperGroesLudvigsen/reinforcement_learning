@@ -15,6 +15,12 @@ from torch.optim import Adam
 import random
 import task3.utils as utils
 import numpy as np
+import params.device as dev
+
+if torch.cuda.is_available():
+    DEVICE = torch.cuda.device("cuda")
+else: 
+    DEVICE = torch.device("cpu")
 
 class Actor_Critic(nn.Module):
     """
@@ -60,11 +66,12 @@ class DiscreteSAC:
     """
     def __init__(self, params):
         
-        if torch.cuda.is_available():
-            self.device = torch.cuda.device("cuda")
-        else: 
-            self.device = torch.device("cpu")
+        #if torch.cuda.is_available():
+        #    self.device = torch.cuda.device("cuda")
+        #else: 
+        #    self.device = torch.device("cpu")
 
+        self.exp_name = params['experiment_name']
         # Hyperparameters
         self.gamma = params["learning_params"]["gamma"]
         self.polyak = params["learning_params"]["polyak"] 
@@ -107,9 +114,9 @@ class DiscreteSAC:
             # Copied from:
             # https://github.com/p-christ/Deep-Reinforcement-Learning-Algorithms-with-PyTorch/blob/6297608b8524774c847ad5cad87e14b80abf69ce/agents/actor_critic_agents/SAC.py#L189
             self.target_entropy = -torch.prod(
-                torch.Tensor(params["ac_params"]['num_actions']).to(self.device)
+                torch.Tensor(params["ac_params"]['num_actions'])
                 ).item()
-            self.log_alpha = torch.zeros(1, requires_grad=True, device=self.device)
+            self.log_alpha = torch.zeros(1, requires_grad=True)
             self.alpha = self.log_alpha.exp()
             self.alpha_optim = Adam(
                 [self.log_alpha], lr=params["learning_params"]["lr"], eps=1e-4
@@ -120,7 +127,7 @@ class DiscreteSAC:
     def environment_step(self, environment, buffer, buffer_fill):
         # Get obs
         observation = environment.calculate_observations()
-        converted_obs = utils.convert_state(observation)
+        converted_obs = environment.convert_state(observation) # changed from utils.convert_state()
         actions = environment.guard_actions
         
         # Get action 
@@ -128,9 +135,13 @@ class DiscreteSAC:
             with torch.no_grad():
                 action_distribution = self.actor_critic.policy(converted_obs)
                 action_distribution = np.asarray(action_distribution)[0]
-                if self.train_mode:    
-                    action = np.random.choice(actions, p = action_distribution)
-                    action_index = actions.index(action)
+                if self.train_mode:
+                    if np.isnan(action_distribution).any():
+                        action_index = np.argmax(action_distribution)
+                        action = actions[action_index] 
+                    else:
+                        action = np.random.choice(actions, p = action_distribution)
+                        action_index = actions.index(action)
                 else:
                     action_index = np.argmax(action_distribution)
                     action = actions[action_index]    
@@ -144,7 +155,7 @@ class DiscreteSAC:
             environment.britney_location,
             action)
         new_obs = environment.calculate_observations()
-        converted_new_obs = utils.convert_state(new_obs)
+        converted_new_obs = environment.convert_state(new_obs)
         
         # Store the experience in D, experience replay buffer.
         if done:
@@ -306,6 +317,12 @@ class DiscreteSAC:
         alpha_loss = -(self.log_alpha * (log_pi + self.target_entropy).detach()).mean()
         return alpha_loss
     
+    def save_model(self):
+        torch.save(self.actor_critic.policy.state_dict(), self.exp_name +"_local_pi.pt") # where PATH is just the file name, e.g. "model_1.pt"
+        torch.save(self.actor_critic.q1.state_dict(), self.exp_name +"_local_q1.pt")
+        torch.save(self.actor_critic.q2.state_dict(), self.exp_name +"_local_q2.pt")
+        torch.save(self.target_actor_critic.q1.state_dict(), self.exp_name +"_target_q1.pt")
+        torch.save(self.target_actor_critic.q2.state_dict(), self.exp_name +"_target_q2.pt")
     
     
     

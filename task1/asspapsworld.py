@@ -46,7 +46,12 @@ class AssPapWorld(ass.AssassinWorld):
         self.map[self.peephole, 2] = 0
         self.map[self.peephole, -3] = 0
         
-    def environment_step(self, action):
+    def environment_step(self, guard_location, britney_location, action):
+        """ guard_location and britney_location are not used in this method,
+        but they are given as arguments so that in learning_environment, we
+        can call environment_step() the same way regardless of the type of
+        environmnt we're using (britney_world makes use of guard_location and 
+        britney_location)"""
         done = False
         rewardz = 0
         # Moving assassins and stabbing
@@ -56,6 +61,7 @@ class AssPapWorld(ass.AssassinWorld):
         rewardz += reward
         self.assassin_locations = self.move_assassins(self.britney_location,
                                                       self.assassin_locations)
+
         
         # Paps take photos and move
         for pap in self.paparazzi:
